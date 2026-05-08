@@ -6,12 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main(){
+func main() {
 
 	r := gin.Default()
-	
+	r.LoadHTMLGlob("templates/*")
+	r.Static("/static", "./static")
+	r.Static("/outputs", "./outputs")
+
 	routes.SetUpRoutes(r)
-	
-	r.Run(":8000");
-	
+
+	r.Run(":8000")
+
 }

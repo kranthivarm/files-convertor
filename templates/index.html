@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDFForge — PDF Powerhouse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<nav>
+  <div class="logo">PDF<span>Forge</span></div>
+  <div class="nav-right">
+    <span class="nav-tag">Pure Go Engine</span>
+    <span class="nav-tag accent">pdfcpu</span>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-badge">
+    <span class="pulse-dot"></span>
+    All PDF tools — runs 100% locally
+  </div>
+  <h1>Every PDF tool<br>you'll ever <em>need</em></h1>
+  <p>Merge, split, compress, rotate, watermark and convert — all in-process via a pure Go engine. Zero external services, zero file uploads to the cloud.</p>
+</header>
+
+<main class="container">
+
+  <!-- ── Conversions ─────────────────────────────────────────── -->
+  <div class="section-label">
+    <span>Image &amp; Document Conversion</span>
+  </div>
+  <div class="tool-grid">
+
+    <!-- JPG → PDF -->
+    <div class="tool-card" data-accent="#ffd166">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(255,209,102,.1);--ci-bd:rgba(255,209,102,.25)">🖼️</div>
+        <div>
+          <div class="card-title">JPG → PDF</div>
+          <div class="card-desc">Bundle images into a single PDF page-by-page</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-jpg2pdf"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-jpg2pdf')">
+        <input type="file" id="fi-jpg2pdf" accept="image/jpeg,image/png,image/gif,image/tiff,image/webp" multiple
+               onchange="onFileChange(this,'dz-jpg2pdf')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> images here (multi-select)</div>
+        <div class="file-list" id="fl-jpg2pdf"></div>
+      </div>
+
+      <button class="btn" style="--btn-color:#ffd166;--btn-text:#111"
+              onclick="submitMany('jpg-to-pdf','fi-jpg2pdf',{},'rb-jpg2pdf','jpg2pdf')">
+        <span class="btn-spinner" id="sp-jpg2pdf"></span>
+        <span>Convert to PDF</span>
+      </button>
+      <div class="result-box" id="rb-jpg2pdf"></div>
+    </div>
+
+    <!-- PDF → JPG -->
+    <div class="tool-card" data-accent="#ff9f1c">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(255,159,28,.1);--ci-bd:rgba(255,159,28,.25)">🗂️</div>
+        <div>
+          <div class="card-title">PDF → JPG</div>
+          <div class="card-desc">Extract embedded images from every page</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-pdf2jpg"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-pdf2jpg')">
+        <input type="file" id="fi-pdf2jpg" accept=".pdf"
+               onchange="onFileChange(this,'dz-pdf2jpg')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-pdf2jpg"></div>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">Quality</span>
+        <select id="sel-dpi" class="field-select">
+          <option value="72">72 dpi — Screen</option>
+          <option value="150" selected>150 dpi — Standard</option>
+          <option value="300">300 dpi — Print</option>
+        </select>
+      </div>
+
+      <button class="btn" style="--btn-color:#ff9f1c;--btn-text:#111"
+              onclick="submitOne('pdf-to-jpg','fi-pdf2jpg',
+                {dpi:document.getElementById('sel-dpi').value},
+                'rb-pdf2jpg','pdf2jpg')">
+        <span class="btn-spinner" id="sp-pdf2jpg"></span>
+        <span>Extract as JPG</span>
+      </button>
+      <div class="result-box" id="rb-pdf2jpg"></div>
+    </div>
+
+  </div><!-- /.tool-grid -->
+
+  <!-- ── PDF Operations ─────────────────────────────────────── -->
+  <div class="section-label">
+    <span>PDF Operations</span>
+  </div>
+  <div class="tool-grid">
+
+    <!-- Merge -->
+    <div class="tool-card" data-accent="#ff4d6d">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(255,77,109,.1);--ci-bd:rgba(255,77,109,.25)">🔗</div>
+        <div>
+          <div class="card-title">Merge PDFs</div>
+          <div class="card-desc">Combine multiple PDFs into one document</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-merge"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-merge')">
+        <input type="file" id="fi-merge" accept=".pdf" multiple
+               onchange="onFileChange(this,'dz-merge')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> PDFs here (multi-select)</div>
+        <div class="file-list" id="fl-merge"></div>
+      </div>
+
+      <button class="btn" style="--btn-color:#ff4d6d;--btn-text:#fff"
+              onclick="submitMany('merge','fi-merge',{},'rb-merge','merge')">
+        <span class="btn-spinner" id="sp-merge"></span>
+        <span>Merge PDFs</span>
+      </button>
+      <div class="result-box" id="rb-merge"></div>
+    </div>
+
+    <!-- Split -->
+    <div class="tool-card" data-accent="#80ffdb">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(128,255,219,.1);--ci-bd:rgba(128,255,219,.25)">✂️</div>
+        <div>
+          <div class="card-title">Split PDF</div>
+          <div class="card-desc">Separate every page into its own PDF file</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-split"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-split')">
+        <input type="file" id="fi-split" accept=".pdf"
+               onchange="onFileChange(this,'dz-split')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-split"></div>
+      </div>
+
+      <button class="btn" style="--btn-color:#80ffdb;--btn-text:#111"
+              onclick="submitOne('split','fi-split',{},'rb-split','split')">
+        <span class="btn-spinner" id="sp-split"></span>
+        <span>Split into Pages</span>
+      </button>
+      <div class="result-box" id="rb-split"></div>
+    </div>
+
+    <!-- Compress -->
+    <div class="tool-card" data-accent="#f8961e">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(248,150,30,.1);--ci-bd:rgba(248,150,30,.25)">🗜️</div>
+        <div>
+          <div class="card-title">Compress PDF</div>
+          <div class="card-desc">Optimise & deduplicate — shrink without visible loss</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-compress"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-compress')">
+        <input type="file" id="fi-compress" accept=".pdf"
+               onchange="onFileChange(this,'dz-compress')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-compress"></div>
+      </div>
+
+      <button class="btn" style="--btn-color:#f8961e;--btn-text:#111"
+              onclick="submitOne('compress','fi-compress',{},'rb-compress','compress')">
+        <span class="btn-spinner" id="sp-compress"></span>
+        <span>Compress PDF</span>
+      </button>
+      <div class="result-box" id="rb-compress"></div>
+    </div>
+
+    <!-- Rotate -->
+    <div class="tool-card" data-accent="#a8dadc">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(168,218,220,.1);--ci-bd:rgba(168,218,220,.25)">🔄</div>
+        <div>
+          <div class="card-title">Rotate PDF</div>
+          <div class="card-desc">Fix page orientation — all pages at once</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-rotate"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-rotate')">
+        <input type="file" id="fi-rotate" accept=".pdf"
+               onchange="onFileChange(this,'dz-rotate')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-rotate"></div>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">Angle</span>
+        <select id="sel-rotate" class="field-select">
+          <option value="90">90° — Clockwise</option>
+          <option value="180">180° — Flip</option>
+          <option value="270">270° — Counter-clockwise</option>
+        </select>
+      </div>
+
+      <button class="btn" style="--btn-color:#a8dadc;--btn-text:#111"
+              onclick="submitOne('rotate','fi-rotate',
+                {degrees:document.getElementById('sel-rotate').value},
+                'rb-rotate','rotate')">
+        <span class="btn-spinner" id="sp-rotate"></span>
+        <span>Rotate PDF</span>
+      </button>
+      <div class="result-box" id="rb-rotate"></div>
+    </div>
+
+    <!-- Watermark -->
+    <div class="tool-card" data-accent="#c77dff">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(199,125,255,.1);--ci-bd:rgba(199,125,255,.25)">💧</div>
+        <div>
+          <div class="card-title">Add Watermark</div>
+          <div class="card-desc">Stamp diagonal text across every page</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz-wm"
+           ondragover="onDragOver(event,this)"
+           ondragleave="onDragLeave(this)"
+           ondrop="onDrop(event,this,'fi-wm')">
+        <input type="file" id="fi-wm" accept=".pdf"
+               onchange="onFileChange(this,'dz-wm')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-wm"></div>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">Text</span>
+        <input type="text" id="wm-text" class="field-input" value="CONFIDENTIAL" placeholder="Watermark text">
+      </div>
+      <div class="field-row">
+        <span class="field-label">Opacity</span>
+        <input type="range" id="wm-opacity" min="5" max="80" value="30"
+               oninput="document.getElementById('wm-opval').textContent=this.value+'%'">
+        <span class="range-val" id="wm-opval">30%</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Size</span>
+        <input type="range" id="wm-size" min="20" max="96" value="48"
+               oninput="document.getElementById('wm-szval').textContent=this.value+'pt'">
+        <span class="range-val" id="wm-szval">48pt</span>
+      </div>
+
+      <button class="btn" style="--btn-color:#c77dff;--btn-text:#fff"
+              onclick="submitOne('watermark','fi-wm',{
+                text:     document.getElementById('wm-text').value,
+                opacity:  document.getElementById('wm-opacity').value / 100,
+                fontsize: document.getElementById('wm-size').value
+              },'rb-wm','wm')">
+        <span class="btn-spinner" id="sp-wm"></span>
+        <span>Apply Watermark</span>
+      </button>
+      <div class="result-box" id="rb-wm"></div>
+    </div>
+
+  </div><!-- /.tool-grid -->
+</main>
+
+<footer>
+  <span>Built with <strong>Go</strong> + <strong>pdfcpu</strong></span>
+  <span class="footer-dot">·</span>
+  <span>All processing is <strong>local</strong> — your files never leave this machine</span>
+</footer>
+
+<div id="toast" role="alert" aria-live="assertive"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
