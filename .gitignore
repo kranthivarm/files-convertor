@@ -1,0 +1,28 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+# If you build your project into a specific name:
+i-lov-pdf
+
+# Test and coverage artifacts
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Environment and sensitive files
+.env
+.env.*
+
+# Go workspace files (if you use them locally)
+go.work
+go.work.sum
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
