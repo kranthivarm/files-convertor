@@ -60,7 +60,6 @@ func RotatePDF(inFile, outFile string, degrees int) error {
 
 func WatermarkPDF(inFile, outFile, text string, opacity float64, fontSize int) error {
 	desc := fmt.Sprintf(
-		// "font:Helvetica, points:%d, scale:0.9 rel, color:#808080, opacity:%.2f, rot:45, diagonal:2",
 		"font:Helvetica, points:%d, scale:0.9 rel, color:#808080, opacity:%.2f, rot:45",
 		fontSize, opacity,
 	)
