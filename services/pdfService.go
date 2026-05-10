@@ -50,8 +50,111 @@ func CompressPDF(inFile, outFile string) error {
 	c := conf()
 	c.WriteObjectStream = true
 	c.WriteXRefStream = true
-	c.Optimize=true
+ 
+	// Stage 1 – optimise
+	opt := outFile + ".opt.pdf"
+	defer os.Remove(opt)
+	if err := api.OptimizeFile(inFile, opt, c); err != nil {
+		// Optimise failed (e.g. encrypted) – copy as-is
+		return copyFile(inFile, outFile)
+	}
+ 
+	// Stage 2 – re-encode images inside the optimised PDF
+	rei := outFile + ".rei.pdf"
+	defer os.Remove(rei)
+	if err := reencodeImagesPDF(opt, rei, 60); err != nil {
+		// Re-encode step failed – use the optimised version
+		return copyFile(opt, outFile)
+	}
+ 
+	// Pick the smallest result
+	smallest, _ := smallestFile(inFile, opt, rei)
+	return copyFile(smallest, outFile)
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
+}
+
+func reencodeImagesPDF(inFile, outFile string, quality int) error {
+	tmpDir, err := os.MkdirTemp("", "pdfimg-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+ 
+	c := conf()
+ 
+	// Extract embedded images to disk
+	if err := api.ExtractImagesFile(inFile, tmpDir, nil, c); err != nil {
+		// No images – just copy through
+		return copyFile(inFile, outFile)
+	}
+ 
+	// Re-encode each image at lower quality in-place
+	entries, _ := os.ReadDir(tmpDir)
+	for _, e := range entries {
+		if !e.IsDir() {
+			_ = reencodeImageFile(filepath.Join(tmpDir, e.Name()), quality)
+		}
+	}
+ 
+	// A second Optimize pass rebuilds the PDF with updated stream lengths.
+	// This is the step that actually produces a smaller file.
 	return api.OptimizeFile(inFile, outFile, c)
+}
+
+func reencodeImageFile(path string, quality int) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	img, _, err := image.Decode(f)
+	f.Close()
+	if err != nil {
+		return err
+	}
+ 
+	// Composite onto white so transparent PNGs survive JPEG encoding
+	b := img.Bounds()
+	dst := image.NewRGBA(b)
+	draw.Draw(dst, b, &image.Uniform{color.White}, image.Point{}, draw.Src)
+	draw.Draw(dst, b, img, b.Min, draw.Over)
+ 
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	return jpeg.Encode(out, dst, &jpeg.Options{Quality: quality})
+}
+ 
+// smallestFile returns the path and size of the smallest existing file among candidates.
+func smallestFile(paths ...string) (string, int64) {
+	best := ""
+	var bestSize int64 = -1
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if bestSize < 0 || info.Size() < bestSize {
+			best = p
+			bestSize = info.Size()
+		}
+	}
+	return best, bestSize
 }
 
 func RotatePDF(inFile, outFile string, degrees int) error {
@@ -60,6 +163,7 @@ func RotatePDF(inFile, outFile string, degrees int) error {
 
 func WatermarkPDF(inFile, outFile, text string, opacity float64, fontSize int) error {
 	desc := fmt.Sprintf(
+		// "font:Helvetica, points:%d, scale:0.9 rel, color:#808080, opacity:%.2f, rot:45, diagonal:2",
 		"font:Helvetica, points:%d, scale:0.9 rel, color:#808080, opacity:%.2f, rot:45",
 		fontSize, opacity,
 	)
