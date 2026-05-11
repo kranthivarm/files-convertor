@@ -1,4 +1,3 @@
-/* ── Card accent colours from data-accent ───────────────────── */
 document.querySelectorAll('.tool-card[data-accent]').forEach(card => {
   card.style.setProperty('--card-a', card.dataset.accent);
 });
@@ -107,10 +106,25 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-/* ── Merge: reorderable file list ───────────────────────────── */
+function openModal(id) {
+  const m = document.getElementById(id);
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  m.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    closeModal(e.target.id);
+  }
+});
 
 let mergeFiles = [];
-let dragSrcIdx = null;
 
 function onMergeFilesChange(input) {
   const newFiles = Array.from(input._files || input.files);
@@ -121,107 +135,147 @@ function onMergeFilesChange(input) {
   });
   input.value = '';
   input._files = null;
-  renderMergeList();
   const dz = document.getElementById('dz-merge');
   const c = dz.closest('.tool-card')?.style.getPropertyValue('--card-a');
   if (c && mergeFiles.length) dz.style.borderColor = c;
+  openMergeModal();
 }
 
-function renderMergeList() {
-  const ul = document.getElementById('merge-list');
-  ul.innerHTML = '';
+function openMergeModal() {
+  renderMergeModal();
+  openModal('modal-merge');
+}
+
+function renderMergeModal() {
+  const list = document.getElementById('merge-modal-list');
+  list.innerHTML = '';
   mergeFiles.forEach((f, i) => {
-    const li = document.createElement('li');
-    li.className = 'merge-item';
-    li.draggable = true;
-    li.dataset.idx = i;
-
-    li.innerHTML = `
-      <span class="merge-item-handle">⠿</span>
-      <span class="merge-item-name" title="${f.name}">${f.name}</span>
-      <span class="merge-item-size">${(f.size / 1024).toFixed(0)} KB</span>
-      <button class="merge-item-remove" onclick="removeMergeFile(${i})" title="Remove">✕</button>
+    const item = document.createElement('div');
+    item.className = 'mmodal-item';
+    item.innerHTML = `
+      <div class="mmodal-order">
+        <button class="mmodal-arrow" onclick="moveMergeFile(${i}, -1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <span class="mmodal-num">${i + 1}</span>
+        <button class="mmodal-arrow" onclick="moveMergeFile(${i}, 1)" ${i === mergeFiles.length - 1 ? 'disabled' : ''}>▼</button>
+      </div>
+      <div class="mmodal-info">
+        <span class="mmodal-name" title="${f.name}">${f.name}</span>
+        <span class="mmodal-size">${(f.size / 1024).toFixed(0)} KB</span>
+      </div>
+      <button class="mmodal-remove" onclick="removeMergeModal(${i})">✕</button>
     `;
-
-    li.addEventListener('dragstart', e => {
-      dragSrcIdx = i;
-      li.classList.add('drag-source');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    li.addEventListener('dragend', () => {
-      li.classList.remove('drag-source');
-      document.querySelectorAll('.merge-item').forEach(el => el.classList.remove('drag-over-item'));
-    });
-    li.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      document.querySelectorAll('.merge-item').forEach(el => el.classList.remove('drag-over-item'));
-      li.classList.add('drag-over-item');
-    });
-    li.addEventListener('drop', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const targetIdx = parseInt(li.dataset.idx);
-      if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
-      const moved = mergeFiles.splice(dragSrcIdx, 1)[0];
-      mergeFiles.splice(targetIdx, 0, moved);
-      dragSrcIdx = null;
-      renderMergeList();
-    });
-
-    ul.appendChild(li);
+    list.appendChild(item);
   });
 }
 
-function removeMergeFile(idx) {
+function moveMergeFile(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= mergeFiles.length) return;
+  const tmp = mergeFiles[idx];
+  mergeFiles[idx] = mergeFiles[target];
+  mergeFiles[target] = tmp;
+  renderMergeModal();
+}
+
+function removeMergeModal(idx) {
   mergeFiles.splice(idx, 1);
-  renderMergeList();
+  if (mergeFiles.length === 0) {
+    closeModal('modal-merge');
+    return;
+  }
+  renderMergeModal();
 }
 
 async function submitMerge() {
   if (mergeFiles.length < 2) { toast('Add at least 2 PDFs to merge'); return; }
   const fd = new FormData();
   mergeFiles.forEach(f => fd.append('files', f));
+  closeModal('modal-merge');
   setLoading('merge', true);
   try {
     const res  = await fetch('/api/merge', { method: 'POST', body: fd });
     const data = await res.json();
     showResult('rb-merge', res.ok, data);
-    if (res.ok) mergeFiles = [], renderMergeList();
+    if (res.ok) mergeFiles = [];
   } catch (err) {
     showResult('rb-merge', false, { error: err.message });
   }
   setLoading('merge', false);
 }
 
-/* ── Split: mode toggle + custom submit ─────────────────────── */
+let splitFile = null;
+let splitRanges = [{ start: '', end: '' }];
 
-function onSplitModeChange() {
-  const mode = document.getElementById('split-mode').value;
-  document.getElementById('split-chunk-row').style.display  = mode === 'custom' ? 'flex' : 'none';
-  document.getElementById('split-ranges-row').style.display = mode === 'ranges' ? 'flex' : 'none';
+function onSplitFileChange(input) {
+  splitFile = (input._files || input.files)[0] || null;
+  input.value = '';
+  input._files = null;
+  if (!splitFile) return;
+  const dz = document.getElementById('dz-split');
+  const c = dz.closest('.tool-card')?.style.getPropertyValue('--card-a');
+  if (c) dz.style.borderColor = c;
+  const fl = document.getElementById('fl-split');
+  if (fl) fl.textContent = splitFile.name;
+  openSplitModal();
+}
+
+function openSplitModal() {
+  splitRanges = [{ start: '', end: '' }];
+  document.getElementById('split-modal-filename').textContent = splitFile ? splitFile.name : '';
+  renderSplitRanges();
+  openModal('modal-split');
+}
+
+function renderSplitRanges() {
+  const container = document.getElementById('split-ranges-list');
+  container.innerHTML = '';
+  splitRanges.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'smodal-row';
+    row.innerHTML = `
+      <span class="smodal-label">Part ${i + 1}</span>
+      <input class="field-input smodal-input" type="number" min="1" placeholder="Start" value="${r.start}"
+        oninput="splitRanges[${i}].start = this.value">
+      <span class="smodal-sep">–</span>
+      <input class="field-input smodal-input" type="number" min="1" placeholder="End" value="${r.end}"
+        oninput="splitRanges[${i}].end = this.value">
+      ${splitRanges.length > 1 ? `<button class="smodal-remove" onclick="removeSplitRange(${i})">✕</button>` : '<span class="smodal-remove-ph"></span>'}
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addSplitRange() {
+  splitRanges.push({ start: '', end: '' });
+  renderSplitRanges();
+}
+
+function removeSplitRange(idx) {
+  splitRanges.splice(idx, 1);
+  renderSplitRanges();
 }
 
 async function submitSplit() {
-  const files = getFiles('fi-split');
-  if (!files || files.length === 0) { toast('Please select a PDF first'); return; }
+  if (!splitFile) { toast('Please select a PDF first'); return; }
 
-  const mode = document.getElementById('split-mode').value;
-  const fd = new FormData();
-  fd.append('file', files[0]);
+  const validRanges = splitRanges.filter(r => r.start !== '' && r.end !== '');
+  if (validRanges.length === 0) { toast('Enter at least one page range'); return; }
 
-  if (mode === '1') {
-    fd.append('span', '1');
-  } else if (mode === 'custom') {
-    const span = parseInt(document.getElementById('split-span').value) || 1;
-    fd.append('span', String(span));
-  } else if (mode === 'ranges') {
-    const raw = document.getElementById('split-ranges').value.trim();
-    if (!raw) { toast('Enter page ranges, e.g. 1-3, 5, 7-9'); return; }
-    fd.append('span', '1');
-    fd.append('ranges', raw);
+  for (const r of validRanges) {
+    const s = parseInt(r.start), e = parseInt(r.end);
+    if (isNaN(s) || isNaN(e) || s < 1 || e < s) {
+      toast('Each range needs valid start ≤ end page numbers');
+      return;
+    }
   }
 
+  const rawRanges = validRanges.map(r => `${r.start}-${r.end}`).join(',');
+
+  const fd = new FormData();
+  fd.append('file', splitFile);
+  fd.append('ranges', rawRanges);
+
+  closeModal('modal-split');
   setLoading('split', true);
   try {
     const res  = await fetch('/api/split', { method: 'POST', body: fd });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDFForge — PDF Powerhouse</title>
+<title>I love PDF</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
@@ -15,31 +15,29 @@
 <div class="orb orb-3"></div>
 
 <nav>
-  <div class="logo">PDF<span>Forge</span></div>
+  <div class="logo">Ilove<span>PDF</span></div>
   <div class="nav-right">
-    <span class="nav-tag">Pure Go Engine</span>
-    <span class="nav-tag accent">pdfcpu</span>
+    <!-- <span class="nav-tag">Pure Go Engine</span>
+    <span class="nav-tag accent">pdfcpu</span> -->
   </div>
 </nav>
 
 <header class="hero">
   <div class="hero-badge">
     <span class="pulse-dot"></span>
-    All PDF tools — runs 100% locally
+    All PDF tools
   </div>
   <h1>Every PDF tool<br>you'll ever <em>need</em></h1>
-  <p>Merge, split, compress, rotate, watermark and convert — all in-process via a pure Go engine. Zero external services, zero file uploads to the cloud.</p>
+  <p>Merge, split, compress, rotate, watermark and convert</p>
 </header>
 
 <main class="container">
 
-  <!-- ── Conversions ─────────────────────────────────────────── -->
   <div class="section-label">
     <span>Image &amp; Document Conversion</span>
   </div>
   <div class="tool-grid">
 
-    <!-- JPG → PDF -->
     <div class="tool-card" data-accent="#ffd166">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(255,209,102,.1);--ci-bd:rgba(255,209,102,.25)">🖼️</div>
@@ -68,7 +66,6 @@
       <div class="result-box" id="rb-jpg2pdf"></div>
     </div>
 
-    <!-- PDF → JPG -->
     <div class="tool-card" data-accent="#ff9f1c">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(255,159,28,.1);--ci-bd:rgba(255,159,28,.25)">🗂️</div>
@@ -108,21 +105,19 @@
       <div class="result-box" id="rb-pdf2jpg"></div>
     </div>
 
-  </div><!-- /.tool-grid -->
+  </div>
 
-  <!-- ── PDF Operations ─────────────────────────────────────── -->
   <div class="section-label">
     <span>PDF Operations</span>
   </div>
   <div class="tool-grid">
 
-    <!-- Merge -->
     <div class="tool-card" data-accent="#ff4d6d">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(255,77,109,.1);--ci-bd:rgba(255,77,109,.25)">🔗</div>
         <div>
           <div class="card-title">Merge PDFs</div>
-          <div class="card-desc">Combine multiple PDFs — drag to reorder</div>
+          <div class="card-desc">Combine multiple PDFs — reorder before merging</div>
         </div>
       </div>
 
@@ -133,26 +128,23 @@
         <input type="file" id="fi-merge" accept=".pdf" multiple
                onchange="onMergeFilesChange(this)">
         <div class="drop-icon">📂</div>
-        <div class="drop-text"><strong>Click or drag</strong> PDFs here (multi-select)</div>
+        <div class="drop-text"><strong>Click or drag</strong> PDFs here — opens reorder panel</div>
       </div>
 
-      <ul id="merge-list" class="merge-list"></ul>
-
       <button class="btn" style="--btn-color:#ff4d6d;--btn-text:#fff"
-              onclick="submitMerge()">
+              onclick="openMergeModal()">
         <span class="btn-spinner" id="sp-merge"></span>
         <span>Merge PDFs</span>
       </button>
       <div class="result-box" id="rb-merge"></div>
     </div>
 
-    <!-- Split -->
     <div class="tool-card" data-accent="#80ffdb">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(128,255,219,.1);--ci-bd:rgba(128,255,219,.25)">✂️</div>
         <div>
           <div class="card-title">Split PDF</div>
-          <div class="card-desc">Split by single pages or fixed page chunks</div>
+          <div class="card-desc">Define page ranges — extract multiple parts at once</div>
         </div>
       </div>
 
@@ -161,46 +153,26 @@
            ondragleave="onDragLeave(this)"
            ondrop="onDrop(event,this,'fi-split')">
         <input type="file" id="fi-split" accept=".pdf"
-               onchange="onFileChange(this,'dz-split')">
+               onchange="onSplitFileChange(this)">
         <div class="drop-icon">📂</div>
-        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF — opens range panel</div>
         <div class="file-list" id="fl-split"></div>
       </div>
 
-      <div class="field-row">
-        <span class="field-label">Mode</span>
-        <select id="split-mode" class="field-select" onchange="onSplitModeChange()">
-          <option value="1">Every page — 1 PDF per page</option>
-          <option value="custom">Fixed chunk — N pages per PDF</option>
-          <option value="ranges">Custom ranges — e.g. 1-3, 5, 7-9</option>
-        </select>
-      </div>
-
-      <div id="split-chunk-row" class="field-row" style="display:none">
-        <span class="field-label">Pages</span>
-        <input type="number" id="split-span" class="field-input" value="2" min="1" placeholder="Pages per chunk">
-      </div>
-
-      <div id="split-ranges-row" class="field-row" style="display:none">
-        <span class="field-label">Ranges</span>
-        <input type="text" id="split-ranges" class="field-input" placeholder="e.g. 1-3, 5, 7-9">
-      </div>
-
       <button class="btn" style="--btn-color:#80ffdb;--btn-text:#111"
-              onclick="submitSplit()">
+              onclick="openSplitModal()">
         <span class="btn-spinner" id="sp-split"></span>
         <span>Split PDF</span>
       </button>
       <div class="result-box" id="rb-split"></div>
     </div>
 
-    <!-- Compress -->
     <div class="tool-card" data-accent="#f8961e">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(248,150,30,.1);--ci-bd:rgba(248,150,30,.25)">🗜️</div>
         <div>
           <div class="card-title">Compress PDF</div>
-          <div class="card-desc">Optimise & deduplicate — shrink without visible loss</div>
+          <div class="card-desc">Optimise &amp; deduplicate — shrink without visible loss</div>
         </div>
       </div>
 
@@ -223,7 +195,6 @@
       <div class="result-box" id="rb-compress"></div>
     </div>
 
-    <!-- Rotate -->
     <div class="tool-card" data-accent="#a8dadc">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(168,218,220,.1);--ci-bd:rgba(168,218,220,.25)">🔄</div>
@@ -263,7 +234,6 @@
       <div class="result-box" id="rb-rotate"></div>
     </div>
 
-    <!-- Watermark -->
     <div class="tool-card" data-accent="#c77dff">
       <div class="card-header">
         <div class="card-icon" style="--ci-bg:rgba(199,125,255,.1);--ci-bd:rgba(199,125,255,.25)">💧</div>
@@ -313,7 +283,7 @@
       <div class="result-box" id="rb-wm"></div>
     </div>
 
-  </div><!-- /.tool-grid -->
+  </div>
 </main>
 
 <footer>
@@ -323,6 +293,47 @@
 </footer>
 
 <div id="toast" role="alert" aria-live="assertive"></div>
+
+<div class="modal-overlay" id="modal-merge">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">🔗 Merge PDFs</div>
+      <button class="modal-close" onclick="closeModal('modal-merge')">✕</button>
+    </div>
+    <p class="modal-hint">Use ▲ ▼ to reorder files. The merge follows this order top-to-bottom.</p>
+    <div class="modal-dropzone" id="modal-merge-dz">
+      <input type="file" id="fi-merge-extra" accept=".pdf" multiple
+             onchange="onMergeFilesChange(this)">
+      <span>+ Add more PDFs</span>
+    </div>
+    <div class="mmodal-list" id="merge-modal-list"></div>
+    <div class="modal-footer">
+      <button class="btn" style="--btn-color:#ff4d6d;--btn-text:#fff" onclick="submitMerge()">
+        <span class="btn-spinner" id="sp-merge-modal"></span>
+        <span>Merge PDFs</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-split">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✂️ Split PDF</div>
+      <button class="modal-close" onclick="closeModal('modal-split')">✕</button>
+    </div>
+    <div class="modal-filename" id="split-modal-filename"></div>
+    <p class="modal-hint">Define start and end page numbers for each part you want to extract.</p>
+    <div class="smodal-list" id="split-ranges-list"></div>
+    <button class="smodal-add" onclick="addSplitRange()">＋ Add another range</button>
+    <div class="modal-footer">
+      <button class="btn" style="--btn-color:#80ffdb;--btn-text:#111" onclick="submitSplit()">
+        <span class="btn-spinner" id="sp-split-modal"></span>
+        <span>Split PDF</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="/static/js/app.js"></script>
 </body>
