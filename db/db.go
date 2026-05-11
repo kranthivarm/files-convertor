@@ -10,11 +10,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// DB is the shared database handle. Call Connect() once at startup.
 var DB *sql.DB
 
-// Connect opens the PostgreSQL connection using DATABASE_URL env var.
-// Falls back to a sensible default for local dev.
 func Connect() error {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -35,11 +32,10 @@ func Connect() error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	log.Println("✅ PostgreSQL connected")
+	log.Println("PostgreSQL connected")
 	return nil
 }
 
-// Migrate creates the tables if they do not already exist.
 func Migrate() error {
 	_, err := DB.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
@@ -62,11 +58,10 @@ func Migrate() error {
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
-	log.Println("✅ DB schema ready")
+	log.Println("DB schema ready")
 	return nil
 }
 
-// ── User ──────────────────────────────────────────────────────────────────────
 
 type User struct {
 	ID        int
@@ -108,7 +103,6 @@ func GetUserByID(id int) (*User, error) {
 	return u, err
 }
 
-// ── Activity Log ──────────────────────────────────────────────────────────────
 
 type Activity struct {
 	ID        int       `json:"id"`
@@ -117,7 +111,6 @@ type Activity struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// LogActivity inserts one row. Silently skips if userID <= 0 (guest).
 func LogActivity(userID int, operation, filename string) {
 	if userID <= 0 {
 		return
@@ -131,7 +124,6 @@ func LogActivity(userID int, operation, filename string) {
 	}
 }
 
-// GetHistory returns the last 50 activities for the given user.
 func GetHistory(userID int) ([]Activity, error) {
 	rows, err := DB.Query(
 		`SELECT id, operation, filename, created_at
