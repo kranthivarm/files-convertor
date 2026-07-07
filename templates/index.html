@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>I love PDF</title>
+<meta name="description" content="Free online PDF toolkit — merge, split, compress, encrypt, sign, and 20+ more tools. All processing happens in-memory, zero files on disk.">
+<title>ILovePDF — Every PDF Tool You'll Ever Need</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -17,18 +19,54 @@
 <nav>
   <div class="logo">Ilove<span>PDF</span></div>
   <div class="nav-right">
-    <!-- <span class="nav-tag">Pure Go Engine</span>
-    <span class="nav-tag accent">pdfcpu</span> -->
+    <span class="nav-tag">In-Memory Engine</span>
+    <span class="nav-tag accent">26 Tools</span>
+
+    <!-- Theme toggle -->
+    <div class="theme-controls">
+      <div class="theme-toggle" id="themeToggle" title="Toggle light/dark">
+        <div class="theme-toggle-knob">🌙</div>
+      </div>
+
+      <!-- Color picker -->
+      <div class="color-picker-wrap">
+        <div class="color-picker-btn" id="colorPickerBtn" title="Choose accent color"></div>
+        <input type="color" class="color-picker-input" id="colorPickerInput" value="#ff4d6d">
+        <div class="color-presets" id="colorPresets">
+          <span class="color-presets-title">Accent Color</span>
+          <div class="color-preset active" data-color="#ff4d6d" style="background:#ff4d6d" title="Rose"></div>
+          <div class="color-preset" data-color="#c77dff" style="background:#c77dff" title="Violet"></div>
+          <div class="color-preset" data-color="#48cae4" style="background:#48cae4" title="Sky"></div>
+          <div class="color-preset" data-color="#06d6a0" style="background:#06d6a0" title="Emerald"></div>
+          <div class="color-preset" data-color="#ffd166" style="background:#ffd166" title="Amber"></div>
+          <div class="color-preset" data-color="#ff9f1c" style="background:#ff9f1c" title="Orange"></div>
+          <div class="color-preset" data-color="#3a86ff" style="background:#3a86ff" title="Blue"></div>
+          <div class="color-preset" data-color="#f72585" style="background:#f72585" title="Pink"></div>
+          <div class="color-preset" data-color="#7209b7" style="background:#7209b7" title="Purple"></div>
+          <div class="color-preset" data-color="#e63946" style="background:#e63946" title="Red"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="hero-badge">
     <span class="pulse-dot"></span>
-    All PDF tools
+    All processing in RAM · Zero files on disk
   </div>
   <h1>Every PDF tool<br>you'll ever <em>need</em></h1>
-  <p>Merge, split, compress, rotate, watermark and convert</p>
+  <p>Merge, split, compress, encrypt, sign, redact, extract, compare and 18 more tools — all powered by a pure Go engine</p>
+
+  <!-- Search bar -->
+  <div class="search-wrap">
+    <div class="search-box" id="searchBox">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="Search tools — e.g. merge, encrypt, compress..." autocomplete="off" spellcheck="false">
+      <span class="search-clear" id="searchClear">&times;</span>
+    </div>
+    <div class="search-count" id="searchCount"></div>
+  </div>
 </header>
 
 <main class="container">
@@ -284,12 +322,477 @@
     </div>
 
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  PAGE EDITING                                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section-label"><span>Page Editing</span></div>
+  <div class="tool-grid">
+
+    <!-- Delete Pages -->
+    <div class="tool-card" data-accent="#ef476f">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(239,71,111,.1);--ci-bd:rgba(239,71,111,.25)">🗑️</div>
+        <div>
+          <div class="card-title">Delete Pages</div>
+          <div class="card-desc">Remove specific pages from your PDF</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-delpg" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-delpg')">
+        <input type="file" id="fi-delpg" accept=".pdf" onchange="onFileChange(this,'dz-delpg')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-delpg"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Pages to delete</span>
+        <input type="text" id="delpg-pages" class="field-input" placeholder="e.g. 1,3,5 or 2-4">
+      </div>
+      <button class="btn" style="--btn-color:#ef476f;--btn-text:#fff"
+              onclick="submitOne('delete-pages','fi-delpg',{pages:document.getElementById('delpg-pages').value},'rb-delpg','delpg')">
+        <span class="btn-spinner" id="sp-delpg"></span><span>Delete Pages</span>
+      </button>
+      <div class="result-box" id="rb-delpg"></div>
+    </div>
+
+    <!-- Reorder Pages -->
+    <div class="tool-card" data-accent="#06d6a0">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(6,214,160,.1);--ci-bd:rgba(6,214,160,.25)">🔀</div>
+        <div>
+          <div class="card-title">Reorder Pages</div>
+          <div class="card-desc">Rearrange pages in any order you want</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-reorder" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-reorder')">
+        <input type="file" id="fi-reorder" accept=".pdf" onchange="onFileChange(this,'dz-reorder')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-reorder"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Page order</span>
+        <input type="text" id="reorder-order" class="field-input" placeholder="e.g. 3,1,2,5,4">
+      </div>
+      <button class="btn" style="--btn-color:#06d6a0;--btn-text:#111"
+              onclick="submitOne('reorder-pages','fi-reorder',{order:document.getElementById('reorder-order').value},'rb-reorder','reorder')">
+        <span class="btn-spinner" id="sp-reorder"></span><span>Reorder Pages</span>
+      </button>
+      <div class="result-box" id="rb-reorder"></div>
+    </div>
+
+    <!-- Insert Blank Pages -->
+    <div class="tool-card" data-accent="#118ab2">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(17,138,178,.1);--ci-bd:rgba(17,138,178,.25)">📄</div>
+        <div>
+          <div class="card-title">Insert Blank Pages</div>
+          <div class="card-desc">Add empty pages at specific positions</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-insertblank" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-insertblank')">
+        <input type="file" id="fi-insertblank" accept=".pdf" onchange="onFileChange(this,'dz-insertblank')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-insertblank"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Insert after pages</span>
+        <input type="text" id="insertblank-after" class="field-input" placeholder="e.g. 1,3,5 — leave empty for end">
+      </div>
+      <button class="btn" style="--btn-color:#118ab2;--btn-text:#fff"
+              onclick="submitOne('insert-blank','fi-insertblank',{after:document.getElementById('insertblank-after').value},'rb-insertblank','insertblank')">
+        <span class="btn-spinner" id="sp-insertblank"></span><span>Insert Blank Pages</span>
+      </button>
+      <div class="result-box" id="rb-insertblank"></div>
+    </div>
+
+    <!-- Crop Pages -->
+    <div class="tool-card" data-accent="#073b4c">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(7,59,76,.12);--ci-bd:rgba(7,59,76,.25)">✂️</div>
+        <div>
+          <div class="card-title">Crop Pages</div>
+          <div class="card-desc">Trim page margins — define a crop box</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-crop" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-crop')">
+        <input type="file" id="fi-crop" accept=".pdf" onchange="onFileChange(this,'dz-crop')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-crop"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Crop box</span>
+        <input type="text" id="crop-box" class="field-input" placeholder="[0 0 400 600]">
+      </div>
+      <button class="btn" style="--btn-color:#073b4c;--btn-text:#fff"
+              onclick="submitOne('crop','fi-crop',{box:document.getElementById('crop-box').value},'rb-crop','crop')">
+        <span class="btn-spinner" id="sp-crop"></span><span>Crop Pages</span>
+      </button>
+      <div class="result-box" id="rb-crop"></div>
+    </div>
+
+    <!-- Add Page Numbers -->
+    <div class="tool-card" data-accent="#7209b7">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(114,9,183,.1);--ci-bd:rgba(114,9,183,.25)">#️⃣</div>
+        <div>
+          <div class="card-title">Add Page Numbers</div>
+          <div class="card-desc">Stamp page numbers at any position</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-pagenum" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-pagenum')">
+        <input type="file" id="fi-pagenum" accept=".pdf" onchange="onFileChange(this,'dz-pagenum')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-pagenum"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Position</span>
+        <select id="pagenum-pos" class="field-select">
+          <option value="bottom-center">Bottom Center</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="bottom-right">Bottom Right</option>
+          <option value="top-center">Top Center</option>
+          <option value="top-left">Top Left</option>
+          <option value="top-right">Top Right</option>
+        </select>
+      </div>
+      <button class="btn" style="--btn-color:#7209b7;--btn-text:#fff"
+              onclick="submitOne('page-numbers','fi-pagenum',{position:document.getElementById('pagenum-pos').value},'rb-pagenum','pagenum')">
+        <span class="btn-spinner" id="sp-pagenum"></span><span>Add Numbers</span>
+      </button>
+      <div class="result-box" id="rb-pagenum"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  EXTRACT                                               -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section-label"><span>Extract Content</span></div>
+  <div class="tool-grid">
+
+    <!-- Extract Text -->
+    <div class="tool-card" data-accent="#4cc9f0">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(76,201,240,.1);--ci-bd:rgba(76,201,240,.25)">📝</div>
+        <div>
+          <div class="card-title">Extract Text</div>
+          <div class="card-desc">Pull raw text content from PDF pages</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-exttxt" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-exttxt')">
+        <input type="file" id="fi-exttxt" accept=".pdf" onchange="onFileChange(this,'dz-exttxt')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-exttxt"></div>
+      </div>
+      <button class="btn" style="--btn-color:#4cc9f0;--btn-text:#111"
+              onclick="submitJson('extract-text','fi-exttxt',{},'rb-exttxt','exttxt')">
+        <span class="btn-spinner" id="sp-exttxt"></span><span>Extract Text</span>
+      </button>
+      <div class="result-box" id="rb-exttxt"></div>
+    </div>
+
+    <!-- Extract Images -->
+    <div class="tool-card" data-accent="#f72585">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(247,37,133,.1);--ci-bd:rgba(247,37,133,.25)">🖼️</div>
+        <div>
+          <div class="card-title">Extract Images</div>
+          <div class="card-desc">Extract all embedded images as a ZIP</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-extimg" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-extimg')">
+        <input type="file" id="fi-extimg" accept=".pdf" onchange="onFileChange(this,'dz-extimg')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-extimg"></div>
+      </div>
+      <button class="btn" style="--btn-color:#f72585;--btn-text:#fff"
+              onclick="submitOne('extract-images','fi-extimg',{},'rb-extimg','extimg')">
+        <span class="btn-spinner" id="sp-extimg"></span><span>Extract Images</span>
+      </button>
+      <div class="result-box" id="rb-extimg"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  SECURITY                                              -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section-label"><span>Security &amp; Signing</span></div>
+  <div class="tool-grid">
+
+    <!-- Encrypt (Password Protect) -->
+    <div class="tool-card" data-accent="#2ec4b6">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(46,196,182,.1);--ci-bd:rgba(46,196,182,.25)">🔒</div>
+        <div>
+          <div class="card-title">Password Protect PDF</div>
+          <div class="card-desc">Add password encryption to your PDF</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-encrypt" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-encrypt')">
+        <input type="file" id="fi-encrypt" accept=".pdf" onchange="onFileChange(this,'dz-encrypt')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-encrypt"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Password</span>
+        <input type="password" id="encrypt-pw" class="field-input" placeholder="Enter password">
+      </div>
+      <button class="btn" style="--btn-color:#2ec4b6;--btn-text:#111"
+              onclick="submitOne('encrypt','fi-encrypt',{password:document.getElementById('encrypt-pw').value},'rb-encrypt','encrypt')">
+        <span class="btn-spinner" id="sp-encrypt"></span><span>Encrypt PDF</span>
+      </button>
+      <div class="result-box" id="rb-encrypt"></div>
+    </div>
+
+    <!-- Decrypt (Unlock) -->
+    <div class="tool-card" data-accent="#e76f51">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(231,111,81,.1);--ci-bd:rgba(231,111,81,.25)">🔓</div>
+        <div>
+          <div class="card-title">Unlock PDF</div>
+          <div class="card-desc">Remove password protection from a PDF</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-decrypt" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-decrypt')">
+        <input type="file" id="fi-decrypt" accept=".pdf" onchange="onFileChange(this,'dz-decrypt')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-decrypt"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Current password</span>
+        <input type="password" id="decrypt-pw" class="field-input" placeholder="Enter current password">
+      </div>
+      <button class="btn" style="--btn-color:#e76f51;--btn-text:#fff"
+              onclick="submitOne('decrypt','fi-decrypt',{password:document.getElementById('decrypt-pw').value},'rb-decrypt','decrypt')">
+        <span class="btn-spinner" id="sp-decrypt"></span><span>Unlock PDF</span>
+      </button>
+      <div class="result-box" id="rb-decrypt"></div>
+    </div>
+
+    <!-- Redact -->
+    <div class="tool-card" data-accent="#264653">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(38,70,83,.12);--ci-bd:rgba(38,70,83,.25)">█</div>
+        <div>
+          <div class="card-title">Redact Info</div>
+          <div class="card-desc">Black out sensitive areas on pages</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-redact" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-redact')">
+        <input type="file" id="fi-redact" accept=".pdf" onchange="onFileChange(this,'dz-redact')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-redact"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Areas (page:x1,y1,x2,y2)</span>
+        <input type="text" id="redact-areas" class="field-input" placeholder="e.g. 1:50,700,300,750; 2:100,500,400,550">
+      </div>
+      <button class="btn" style="--btn-color:#264653;--btn-text:#fff"
+              onclick="submitOne('redact','fi-redact',{areas:document.getElementById('redact-areas').value},'rb-redact','redact')">
+        <span class="btn-spinner" id="sp-redact"></span><span>Redact</span>
+      </button>
+      <div class="result-box" id="rb-redact"></div>
+    </div>
+
+    <!-- Sign PDF -->
+    <div class="tool-card" data-accent="#3a86ff">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(58,134,255,.1);--ci-bd:rgba(58,134,255,.25)">✍️</div>
+        <div>
+          <div class="card-title">Sign PDF</div>
+          <div class="card-desc">Add a visual signature stamp to pages</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-signpdf" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-signpdf')">
+        <input type="file" id="fi-signpdf" accept=".pdf" onchange="onFileChange(this,'dz-signpdf')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-signpdf"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Signature text</span>
+        <input type="text" id="signpdf-text" class="field-input" placeholder="e.g. John Doe — Approved" value="Signed by User">
+      </div>
+      <button class="btn" style="--btn-color:#3a86ff;--btn-text:#fff"
+              onclick="submitOne('sign-pdf','fi-signpdf',{text:document.getElementById('signpdf-text').value},'rb-signpdf','signpdf')">
+        <span class="btn-spinner" id="sp-signpdf"></span><span>Sign PDF</span>
+      </button>
+      <div class="result-box" id="rb-signpdf"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  FORMS                                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section-label"><span>PDF Forms</span></div>
+  <div class="tool-grid">
+
+    <!-- Fill Form -->
+    <div class="tool-card" data-accent="#43aa8b">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(67,170,139,.1);--ci-bd:rgba(67,170,139,.25)">📝</div>
+        <div>
+          <div class="card-title">Fill Form</div>
+          <div class="card-desc">Fill PDF form fields with data</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-fillform" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-fillform')">
+        <input type="file" id="fi-fillform" accept=".pdf" onchange="onFileChange(this,'dz-fillform')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-fillform"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Fields (name=value; ...)</span>
+        <input type="text" id="fillform-fields" class="field-input" placeholder="e.g. FirstName=John; LastName=Doe">
+      </div>
+      <button class="btn" style="--btn-color:#43aa8b;--btn-text:#fff"
+              onclick="submitOne('fill-form','fi-fillform',{fields:document.getElementById('fillform-fields').value},'rb-fillform','fillform')">
+        <span class="btn-spinner" id="sp-fillform"></span><span>Fill Form</span>
+      </button>
+      <div class="result-box" id="rb-fillform"></div>
+    </div>
+
+    <!-- Flatten Form -->
+    <div class="tool-card" data-accent="#90be6d">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(144,190,109,.1);--ci-bd:rgba(144,190,109,.25)">📋</div>
+        <div>
+          <div class="card-title">Flatten Form</div>
+          <div class="card-desc">Lock and flatten form fields into static content</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-flatten" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-flatten')">
+        <input type="file" id="fi-flatten" accept=".pdf" onchange="onFileChange(this,'dz-flatten')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-flatten"></div>
+      </div>
+      <button class="btn" style="--btn-color:#90be6d;--btn-text:#111"
+              onclick="submitOne('flatten-form','fi-flatten',{},'rb-flatten','flatten')">
+        <span class="btn-spinner" id="sp-flatten"></span><span>Flatten Form</span>
+      </button>
+      <div class="result-box" id="rb-flatten"></div>
+    </div>
+
+    <!-- List Form Fields -->
+    <div class="tool-card" data-accent="#f9c74f">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(249,199,79,.1);--ci-bd:rgba(249,199,79,.25)">📋</div>
+        <div>
+          <div class="card-title">List Form Fields</div>
+          <div class="card-desc">View all form fields and their current values</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-formfields" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-formfields')">
+        <input type="file" id="fi-formfields" accept=".pdf" onchange="onFileChange(this,'dz-formfields')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-formfields"></div>
+      </div>
+      <button class="btn" style="--btn-color:#f9c74f;--btn-text:#111"
+              onclick="submitJson('form-fields','fi-formfields',{},'rb-formfields','formfields')">
+        <span class="btn-spinner" id="sp-formfields"></span><span>List Fields</span>
+      </button>
+      <div class="result-box" id="rb-formfields"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  UTILITY                                               -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section-label"><span>Utility</span></div>
+  <div class="tool-grid">
+
+    <!-- Compare PDFs -->
+    <div class="tool-card" data-accent="#577590">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(87,117,144,.1);--ci-bd:rgba(87,117,144,.25)">⚖️</div>
+        <div>
+          <div class="card-title">Compare PDFs</div>
+          <div class="card-desc">Diff page count, dimensions &amp; metadata of two PDFs</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-compare" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-compare')">
+        <input type="file" id="fi-compare" accept=".pdf" multiple onchange="onFileChange(this,'dz-compare')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> exactly 2 PDFs here</div>
+        <div class="file-list" id="fl-compare"></div>
+      </div>
+      <button class="btn" style="--btn-color:#577590;--btn-text:#fff"
+              onclick="submitJsonMany('compare','fi-compare',{},'rb-compare','compare')">
+        <span class="btn-spinner" id="sp-compare"></span><span>Compare</span>
+      </button>
+      <div class="result-box" id="rb-compare"></div>
+    </div>
+
+    <!-- Repair PDF -->
+    <div class="tool-card" data-accent="#f94144">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(249,65,68,.1);--ci-bd:rgba(249,65,68,.25)">🔧</div>
+        <div>
+          <div class="card-title">Repair PDF</div>
+          <div class="card-desc">Fix corrupted PDFs by re-optimizing structure</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-repair" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-repair')">
+        <input type="file" id="fi-repair" accept=".pdf" onchange="onFileChange(this,'dz-repair')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
+        <div class="file-list" id="fl-repair"></div>
+      </div>
+      <button class="btn" style="--btn-color:#f94144;--btn-text:#fff"
+              onclick="submitOne('repair','fi-repair',{},'rb-repair','repair')">
+        <span class="btn-spinner" id="sp-repair"></span><span>Repair PDF</span>
+      </button>
+      <div class="result-box" id="rb-repair"></div>
+    </div>
+
+    <!-- Password Protect Files -->
+    <div class="tool-card" data-accent="#6a4c93">
+      <div class="card-header">
+        <div class="card-icon" style="--ci-bg:rgba(106,76,147,.1);--ci-bd:rgba(106,76,147,.25)">🔐</div>
+        <div>
+          <div class="card-title">Password Protect Files</div>
+          <div class="card-desc">Lock any files (PDFs, images, docs) in an AES-256 encrypted ZIP</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="dz-protectfiles" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-protectfiles')">
+        <input type="file" id="fi-protectfiles" multiple onchange="onFileChange(this,'dz-protectfiles')">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Click or drag</strong> any files here (multi-select)</div>
+        <div class="file-list" id="fl-protectfiles"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Password</span>
+        <input type="password" id="protectfiles-pw" class="field-input" placeholder="Enter password to protect files">
+      </div>
+      <button class="btn" style="--btn-color:#6a4c93;--btn-text:#fff"
+              onclick="submitMany('protect-files','fi-protectfiles',{password:document.getElementById('protectfiles-pw').value},'rb-protectfiles','protectfiles')">
+        <span class="btn-spinner" id="sp-protectfiles"></span><span>Protect Files</span>
+      </button>
+      <div class="result-box" id="rb-protectfiles"></div>
+    </div>
+
+  </div>
 </main>
 
 <footer>
   <span>Built with <strong>Go</strong> + <strong>pdfcpu</strong></span>
   <span class="footer-dot">·</span>
-  <span>All processing is <strong>local</strong> — your files never leave this machine</span>
+  <span>All processing is <strong>in-memory</strong> — your files never touch disk</span>
 </footer>
 
 <div id="toast" role="alert" aria-live="assertive"></div>

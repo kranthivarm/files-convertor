@@ -1,5 +1,141 @@
-document.querySelectorAll('.tool-card[data-accent]').forEach(card => {
+/* ── ILovePDF — Frontend JS ──────────────────────────────── */
+
+/* ── Theme & Color Management ───────────────────────────── */
+(function initTheme() {
+  const root = document.documentElement;
+  const saved = localStorage.getItem('ilpdf-theme') || 'dark';
+  const savedColor = localStorage.getItem('ilpdf-accent') || '#ff4d6d';
+
+  // Apply saved theme
+  if (saved === 'light') root.setAttribute('data-theme', 'light');
+  applyAccent(savedColor);
+
+  // Theme toggle
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) {
+    updateKnob(saved);
+    toggle.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      if (next === 'light') {
+        root.setAttribute('data-theme', 'light');
+      } else {
+        root.removeAttribute('data-theme');
+      }
+      localStorage.setItem('ilpdf-theme', next);
+      updateKnob(next);
+    });
+  }
+
+  function updateKnob(theme) {
+    const knob = document.querySelector('.theme-toggle-knob');
+    if (knob) knob.textContent = theme === 'light' ? '☀️' : '🌙';
+  }
+
+  // Color picker button — toggle presets panel
+  const pickerBtn = document.getElementById('colorPickerBtn');
+  const presetsPanel = document.getElementById('colorPresets');
+  const pickerInput = document.getElementById('colorPickerInput');
+
+  if (pickerBtn && presetsPanel) {
+    pickerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      presetsPanel.classList.toggle('open');
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!presetsPanel.contains(e.target) && e.target !== pickerBtn) {
+        presetsPanel.classList.remove('open');
+      }
+    });
+
+    // Preset color swatches
+    presetsPanel.querySelectorAll('.color-preset').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        const color = swatch.dataset.color;
+        applyAccent(color);
+        localStorage.setItem('ilpdf-accent', color);
+        pickerInput.value = color;
+
+        presetsPanel.querySelectorAll('.color-preset').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+      });
+    });
+
+    // Custom color input
+    if (pickerInput) {
+      pickerInput.value = savedColor;
+      pickerInput.addEventListener('input', (e) => {
+        applyAccent(e.target.value);
+        localStorage.setItem('ilpdf-accent', e.target.value);
+        presetsPanel.querySelectorAll('.color-preset').forEach(s => s.classList.remove('active'));
+      });
+    }
+  }
+
+  // Mark saved preset as active on load
+  if (presetsPanel) {
+    presetsPanel.querySelectorAll('.color-preset').forEach(s => {
+      s.classList.toggle('active', s.dataset.color === savedColor);
+    });
+  }
+
+  function applyAccent(color) {
+    root.style.setProperty('--accent', color);
+
+    // Update color picker button
+    const btn = document.getElementById('colorPickerBtn');
+    if (btn) btn.style.background = color;
+
+    // Update hero gradient with the chosen accent
+    const heroEm = document.querySelector('.hero h1 em');
+    if (heroEm) {
+      heroEm.style.background = `linear-gradient(135deg, ${color} 0%, #c77dff 45%, #48cae4 100%)`;
+      heroEm.style.webkitBackgroundClip = 'text';
+      heroEm.style.webkitTextFillColor = 'transparent';
+    }
+
+    // Update logo gradient
+    const logo = document.querySelector('.logo');
+    if (logo) {
+      logo.style.background = `linear-gradient(135deg, ${color} 0%, #c77dff 50%, #48cae4 100%)`;
+      logo.style.backgroundSize = '200% auto';
+      logo.style.webkitBackgroundClip = 'text';
+      logo.style.webkitTextFillColor = 'transparent';
+    }
+
+    // Update nav accent tag
+    const tag = document.querySelector('.nav-tag.accent');
+    if (tag) {
+      tag.style.borderColor = color + '55';
+      tag.style.color = color;
+      tag.style.background = color + '12';
+    }
+  }
+})();
+
+/* Initialize cards — set accent color + mouse-tracking glow */
+document.querySelectorAll('.tool-card[data-accent]').forEach((card, i) => {
   card.style.setProperty('--card-a', card.dataset.accent);
+
+  /* Staggered entrance animation */
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(16px)';
+  card.style.transition = 'opacity .5s ease, transform .5s ease, border-color .35s, box-shadow .35s';
+  setTimeout(() => {
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  }, 60 + i * 40);
+
+  /* Mouse-tracking inner glow */
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(0);
+    const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(0);
+    card.style.setProperty('--mx', x + '%');
+    card.style.setProperty('--my', y + '%');
+  });
 });
 
 function onDragOver(e, el) {
@@ -46,6 +182,8 @@ function setLoading(key, on) {
   if (btn) btn.disabled = on;
 }
 
+/* ── Submit helpers — now handle binary blob responses ───── */
+
 async function submitOne(endpoint, inputId, extras, resultId, key) {
   const files = getFiles(inputId);
   if (!files || files.length === 0) { toast('Please select a file first'); return; }
@@ -54,9 +192,29 @@ async function submitOne(endpoint, inputId, extras, resultId, key) {
   for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
   setLoading(key, true);
   try {
-    const res  = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
-    const data = await res.json();
-    showResult(resultId, res.ok, data);
+    const res = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
+    if (!res.ok) {
+      const data = await res.json();
+      showResult(resultId, false, data);
+    } else {
+      // Binary blob response — create a download link
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : 'download';
+      const url = URL.createObjectURL(blob);
+
+      // Build metadata for compress
+      const meta = {};
+      const origSize = res.headers.get('X-Original-Size');
+      const compSize = res.headers.get('X-Compressed-Size');
+      const savings  = res.headers.get('X-Savings-Percent');
+      if (origSize) meta.originalSize = parseInt(origSize);
+      if (compSize) meta.newSize = parseInt(compSize);
+      if (savings)  meta.savings = parseInt(savings);
+
+      showBlobResult(resultId, url, filename, meta);
+    }
   } catch (err) {
     showResult(resultId, false, { error: err.message });
   }
@@ -71,13 +229,84 @@ async function submitMany(endpoint, inputId, extras, resultId, key) {
   for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
   setLoading(key, true);
   try {
-    const res  = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
-    const data = await res.json();
-    showResult(resultId, res.ok, data);
+    const res = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
+    if (!res.ok) {
+      const data = await res.json();
+      showResult(resultId, false, data);
+    } else {
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : 'download';
+      const url = URL.createObjectURL(blob);
+      showBlobResult(resultId, url, filename, {});
+    }
   } catch (err) {
     showResult(resultId, false, { error: err.message });
   }
   setLoading(key, false);
+}
+
+/* ── Submit helpers for JSON-response endpoints ──────────── */
+
+async function submitJson(endpoint, inputId, extras, resultId, key) {
+  const files = getFiles(inputId);
+  if (!files || files.length === 0) { toast('Please select a file first'); return; }
+  const fd = new FormData();
+  fd.append('file', files[0]);
+  for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
+  setLoading(key, true);
+  try {
+    const res = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      showResult(resultId, false, data);
+    } else {
+      showJsonResult(resultId, data);
+    }
+  } catch (err) {
+    showResult(resultId, false, { error: err.message });
+  }
+  setLoading(key, false);
+}
+
+async function submitJsonMany(endpoint, inputId, extras, resultId, key) {
+  const files = getFiles(inputId);
+  if (!files || files.length < 2) { toast('Please select at least 2 files'); return; }
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f);
+  for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
+  setLoading(key, true);
+  try {
+    const res = await fetch('/api/' + endpoint, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      showResult(resultId, false, data);
+    } else {
+      showJsonResult(resultId, data);
+    }
+  } catch (err) {
+    showResult(resultId, false, { error: err.message });
+  }
+  setLoading(key, false);
+}
+
+/* ── Result rendering ────────────────────────────────────── */
+
+function showBlobResult(id, blobUrl, filename, meta) {
+  const box = document.getElementById(id);
+  let metaHtml = '';
+  if (meta.originalSize && meta.newSize) {
+    const orig = (meta.originalSize / 1024).toFixed(1);
+    const next = (meta.newSize / 1024).toFixed(1);
+    metaHtml = `<div class="result-meta">${orig} KB → ${next} KB &nbsp;·&nbsp; saved ~${meta.savings || 0}%</div>`;
+  }
+  box.innerHTML = `<div class="result-inner ok">
+    <div class="result-msg">✓ Processed successfully</div>
+    ${metaHtml}
+    <a class="dl-btn" href="${blobUrl}" download="${filename}">↓ Download ${filename}</a>
+  </div>`;
+  box.classList.add('show');
 }
 
 function showResult(id, success, data) {
@@ -106,6 +335,64 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+function showJsonResult(id, data) {
+  const box = document.getElementById(id);
+  let html = '<div class="result-inner ok">';
+  html += '<div class="result-msg">✓ Results</div>';
+
+  // Extract text results
+  if (data.pages && Array.isArray(data.pages)) {
+    html += `<div class="result-meta">${data.count || data.pages.length} pages extracted</div>`;
+    html += '<div class="json-results">';
+    for (const p of data.pages) {
+      html += `<div class="json-page"><strong>Page ${p.page}</strong><pre>${escapeHtml(p.text).slice(0, 500)}${p.text.length > 500 ? '…' : ''}</pre></div>`;
+    }
+    html += '</div>';
+  }
+
+  // Form fields results
+  if (data.fields && Array.isArray(data.fields)) {
+    html += `<div class="result-meta">${data.count || data.fields.length} fields found</div>`;
+    html += '<div class="json-results"><table class="json-table"><tr><th>Name</th><th>Type</th><th>Value</th><th>Locked</th></tr>';
+    for (const f of data.fields) {
+      html += `<tr><td>${escapeHtml(f.name)}</td><td>${escapeHtml(f.type)}</td><td>${escapeHtml(f.value || '—')}</td><td>${f.locked ? '🔒' : '—'}</td></tr>`;
+    }
+    html += '</table></div>';
+  }
+
+  // Compare results
+  if (data.summary !== undefined) {
+    html += `<div class="result-meta">${escapeHtml(data.summary)}</div>`;
+    html += `<div class="json-results">
+      <div class="compare-row"><strong>File 1:</strong> ${data.file1_pages} pages ${data.file1_title ? '— ' + escapeHtml(data.file1_title) : ''}</div>
+      <div class="compare-row"><strong>File 2:</strong> ${data.file2_pages} pages ${data.file2_title ? '— ' + escapeHtml(data.file2_title) : ''}</div>`;
+    if (data.page_diffs && data.page_diffs.length > 0) {
+      html += '<div class="compare-diffs"><strong>Differences:</strong>';
+      for (const d of data.page_diffs) {
+        html += `<div>Page ${d.page}: ${escapeHtml(d.difference)}</div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Fallback: raw JSON
+  if (!data.pages && !data.fields && data.summary === undefined) {
+    html += `<pre class="json-raw">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+  }
+
+  html += '</div>';
+  box.innerHTML = html;
+  box.classList.add('show');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Modals ──────────────────────────────────────────────── */
+
 function openModal(id) {
   const m = document.getElementById(id);
   m.classList.add('open');
@@ -123,6 +410,8 @@ document.addEventListener('click', e => {
     closeModal(e.target.id);
   }
 });
+
+/* ── Merge modal ─────────────────────────────────────────── */
 
 let mergeFiles = [];
 
@@ -193,15 +482,23 @@ async function submitMerge() {
   closeModal('modal-merge');
   setLoading('merge', true);
   try {
-    const res  = await fetch('/api/merge', { method: 'POST', body: fd });
-    const data = await res.json();
-    showResult('rb-merge', res.ok, data);
-    if (res.ok) mergeFiles = [];
+    const res = await fetch('/api/merge', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const data = await res.json();
+      showResult('rb-merge', false, data);
+    } else {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      showBlobResult('rb-merge', url, 'merged.pdf', {});
+      mergeFiles = [];
+    }
   } catch (err) {
     showResult('rb-merge', false, { error: err.message });
   }
   setLoading('merge', false);
 }
+
+/* ── Split modal ─────────────────────────────────────────── */
 
 let splitFile = null;
 let splitRanges = [{ start: '', end: '' }];
@@ -278,11 +575,156 @@ async function submitSplit() {
   closeModal('modal-split');
   setLoading('split', true);
   try {
-    const res  = await fetch('/api/split', { method: 'POST', body: fd });
-    const data = await res.json();
-    showResult('rb-split', res.ok, data);
+    const res = await fetch('/api/split', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const data = await res.json();
+      showResult('rb-split', false, data);
+    } else {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      showBlobResult('rb-split', url, 'split_pages.zip', {});
+    }
   } catch (err) {
     showResult('rb-split', false, { error: err.message });
   }
   setLoading('split', false);
 }
+
+/* ── Search Functionality ────────────────────────────────── */
+(function initSearch() {
+  const input = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('searchClear');
+  const countEl = document.getElementById('searchCount');
+  if (!input) return;
+
+  // Build search index from all tool cards automatically.
+  // This indexes title + description so any future card is searchable.
+  const cards = Array.from(document.querySelectorAll('.tool-card'));
+  const sections = []; // { label, grid, cards[] }
+
+  // Group cards by their parent grid + preceding section label
+  document.querySelectorAll('.tool-grid').forEach(grid => {
+    const label = grid.previousElementSibling;
+    const gridCards = Array.from(grid.querySelectorAll('.tool-card'));
+    sections.push({ label, grid, cards: gridCards });
+  });
+
+  // Build index: each card gets a searchable text blob + keyword aliases
+  const keywordMap = {
+    'merge': 'combine join concatenate',
+    'split': 'extract separate divide',
+    'compress': 'reduce shrink optimize smaller size',
+    'rotate': 'turn flip orientation',
+    'watermark': 'stamp overlay text',
+    'jpg': 'image picture photo jpeg png convert',
+    'pdf': 'document',
+    'delete': 'remove erase',
+    'reorder': 'rearrange sort move order',
+    'insert': 'add blank empty page',
+    'crop': 'trim cut margin',
+    'page': 'number count',
+    'extract': 'pull get text image',
+    'encrypt': 'password protect lock security',
+    'decrypt': 'unlock remove password',
+    'redact': 'black censor hide sensitive',
+    'sign': 'signature stamp approve',
+    'form': 'field fill flatten data input',
+    'compare': 'diff difference check',
+    'repair': 'fix broken corrupted recover',
+    'protect': 'password lock zip archive',
+  };
+
+  const cardIndex = cards.map(card => {
+    const title = (card.querySelector('.card-title')?.textContent || '').toLowerCase();
+    const desc  = (card.querySelector('.card-desc')?.textContent || '').toLowerCase();
+
+    // Build keyword string from aliases
+    let keywords = '';
+    for (const [key, aliases] of Object.entries(keywordMap)) {
+      if (title.includes(key) || desc.includes(key)) {
+        keywords += ' ' + aliases;
+      }
+    }
+
+    return {
+      el: card,
+      title,
+      desc,
+      text: title + ' ' + desc + ' ' + keywords,
+    };
+  });
+
+  let debounceTimer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runSearch, 80);
+
+    // Show/hide clear button
+    clearBtn.classList.toggle('visible', input.value.length > 0);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clearBtn.classList.remove('visible');
+    runSearch();
+    input.focus();
+  });
+
+  // Keyboard shortcut: Ctrl+K or / to focus search
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))) {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+    if (e.key === 'Escape' && document.activeElement === input) {
+      input.value = '';
+      clearBtn.classList.remove('visible');
+      runSearch();
+      input.blur();
+    }
+  });
+
+  function runSearch() {
+    const raw = input.value.trim().toLowerCase();
+
+    if (!raw) {
+      // Show all
+      cards.forEach(c => c.classList.remove('search-hidden'));
+      sections.forEach(s => {
+        if (s.label) s.label.classList.remove('search-hidden');
+        s.grid.classList.remove('search-hidden');
+      });
+      countEl.textContent = '';
+      return;
+    }
+
+    // Split into search terms for multi-word matching
+    const terms = raw.split(/\s+/).filter(t => t.length > 0);
+
+    let matchCount = 0;
+
+    // Score each card
+    cardIndex.forEach(item => {
+      const matches = terms.every(term => item.text.includes(term));
+      item.el.classList.toggle('search-hidden', !matches);
+      if (matches) matchCount++;
+    });
+
+    // Hide empty sections
+    sections.forEach(s => {
+      const visibleCards = s.cards.filter(c => !c.classList.contains('search-hidden'));
+      const isEmpty = visibleCards.length === 0;
+      if (s.label) s.label.classList.toggle('search-hidden', isEmpty);
+      s.grid.classList.toggle('search-hidden', isEmpty);
+    });
+
+    // Update count
+    if (matchCount === 0) {
+      countEl.textContent = `No tools match "${raw}"`;
+    } else {
+      countEl.textContent = `${matchCount} tool${matchCount > 1 ? 's' : ''} found`;
+    }
+  }
+})();

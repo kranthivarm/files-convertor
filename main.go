@@ -2,35 +2,28 @@ package main
 
 import (
 	"log"
-	"i-lov-pdf/cleanup"
-	"i-lov-pdf/routes"
 	"i-lov-pdf/db"
-	"os"
+	"i-lov-pdf/middleware"
+	"i-lov-pdf/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	os.MkdirAll("uploads", 0755)
-	os.MkdirAll("outputs", 0755)
-
 	if err := db.Connect(); err != nil {
-		log.Printf("⚠️  DB unavailable (%v) — running without history", err)
+		log.Printf(" DB unavailable (%v) — running without history", err)
 	} else {
 		if err := db.Migrate(); err != nil {
-			log.Printf("⚠️  DB migrate error: %v", err)
+			log.Printf("DB migrate error: %v", err)
 		}
 	}
-	
 
-	cleanup.Start("uploads", "outputs")
 	r := gin.Default()
+	r.Use(middleware.CORSMiddleware())
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
-	r.Static("/outputs", "./outputs")
 
 	routes.SetUpRoutes(r)
 
 	r.Run(":8000")
-
 }
