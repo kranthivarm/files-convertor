@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"i-lov-pdf/db"
 	"i-lov-pdf/middleware"
 	"i-lov-pdf/routes"
@@ -25,5 +26,10 @@ func main() {
 
 	routes.SetUpRoutes(r)
 
-	r.Run(":8000")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+	log.Printf("Starting server on :%s", port)
+	r.Run(":" + port)
 }

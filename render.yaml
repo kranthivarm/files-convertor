@@ -1,0 +1,26 @@
+# Render Blueprint — one-click deploy configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: ilovepdf
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: GIN_MODE
+        value: release
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ilovepdf-db
+          property: connectionString
+
+databases:
+  - name: ilovepdf-db
+    plan: free
+    databaseName: ilovepdf
+    user: ilovepdf
