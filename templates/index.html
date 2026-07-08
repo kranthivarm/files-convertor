@@ -85,19 +85,27 @@
         </div>
       </div>
 
-      <div class="drop-zone" id="dz-jpg2pdf"
-           ondragover="onDragOver(event,this)"
-           ondragleave="onDragLeave(this)"
-           ondrop="onDrop(event,this,'fi-jpg2pdf')">
+      <button class="btn" style="--btn-color:#ffd166;--btn-text:#111;margin-bottom:10px"
+              onclick="openFileManager('image/jpeg,image/png,image/gif,image/tiff,image/webp', function(files) {
+                document.getElementById('fi-jpg2pdf')._files = files;
+                renderFileList(files, document.getElementById('dz-jpg2pdf'));
+              })">
+        <span>📂 Select & Arrange Images</span>
+      </button>
+
+      <div class="drop-zone" id="dz-jpg2pdf" style="display:none">
         <input type="file" id="fi-jpg2pdf" accept="image/jpeg,image/png,image/gif,image/tiff,image/webp" multiple
                onchange="onFileChange(this,'dz-jpg2pdf')">
-        <div class="drop-icon">📂</div>
-        <div class="drop-text"><strong>Click or drag</strong> images here (multi-select)</div>
         <div class="file-list" id="fl-jpg2pdf"></div>
       </div>
 
+      <div class="output-mode-toggle">
+        <input type="checkbox" id="jpg2pdf-zip-mode">
+        <label for="jpg2pdf-zip-mode">Output as ZIP of separate PDFs (instead of one merged PDF)</label>
+      </div>
+
       <button class="btn" style="--btn-color:#ffd166;--btn-text:#111"
-              onclick="submitMany('jpg-to-pdf','fi-jpg2pdf',{},'rb-jpg2pdf','jpg2pdf')">
+              onclick="submitMany('jpg-to-pdf','fi-jpg2pdf',{mode: document.getElementById('jpg2pdf-zip-mode').checked ? 'zip' : 'merged'},'rb-jpg2pdf','jpg2pdf')">
         <span class="btn-spinner" id="sp-jpg2pdf"></span>
         <span>Convert to PDF</span>
       </button>
@@ -335,22 +343,20 @@
         <div class="card-icon" style="--ci-bg:rgba(239,71,111,.1);--ci-bd:rgba(239,71,111,.25)">🗑️</div>
         <div>
           <div class="card-title">Delete Pages</div>
-          <div class="card-desc">Remove specific pages from your PDF</div>
+          <div class="card-desc">Click pages to select them for deletion</div>
         </div>
       </div>
       <div class="drop-zone" id="dz-delpg" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-delpg')">
-        <input type="file" id="fi-delpg" accept=".pdf" onchange="onFileChange(this,'dz-delpg')">
+        <input type="file" id="fi-delpg" accept=".pdf" onchange="onFileChange(this,'dz-delpg'); initDeletePages('fi-delpg')">
         <div class="drop-icon">📂</div>
         <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
         <div class="file-list" id="fl-delpg"></div>
       </div>
-      <div class="field-row">
-        <span class="field-label">Pages to delete</span>
-        <input type="text" id="delpg-pages" class="field-input" placeholder="e.g. 1,3,5 or 2-4">
-      </div>
+      <div id="delpg-grid" style="display:none"></div>
+      <input type="hidden" id="delpg-pages">
       <button class="btn" style="--btn-color:#ef476f;--btn-text:#fff"
               onclick="submitOne('delete-pages','fi-delpg',{pages:document.getElementById('delpg-pages').value},'rb-delpg','delpg')">
-        <span class="btn-spinner" id="sp-delpg"></span><span>Delete Pages</span>
+        <span class="btn-spinner" id="sp-delpg"></span><span>Delete Selected Pages</span>
       </button>
       <div class="result-box" id="rb-delpg"></div>
     </div>
@@ -361,19 +367,17 @@
         <div class="card-icon" style="--ci-bg:rgba(6,214,160,.1);--ci-bd:rgba(6,214,160,.25)">🔀</div>
         <div>
           <div class="card-title">Reorder Pages</div>
-          <div class="card-desc">Rearrange pages in any order you want</div>
+          <div class="card-desc">Drag pages to rearrange their order</div>
         </div>
       </div>
       <div class="drop-zone" id="dz-reorder" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-reorder')">
-        <input type="file" id="fi-reorder" accept=".pdf" onchange="onFileChange(this,'dz-reorder')">
+        <input type="file" id="fi-reorder" accept=".pdf" onchange="onFileChange(this,'dz-reorder'); initReorderPages('fi-reorder')">
         <div class="drop-icon">📂</div>
         <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
         <div class="file-list" id="fl-reorder"></div>
       </div>
-      <div class="field-row">
-        <span class="field-label">Page order</span>
-        <input type="text" id="reorder-order" class="field-input" placeholder="e.g. 3,1,2,5,4">
-      </div>
+      <div id="reorder-grid" style="display:none"></div>
+      <input type="hidden" id="reorder-order">
       <button class="btn" style="--btn-color:#06d6a0;--btn-text:#111"
               onclick="submitOne('reorder-pages','fi-reorder',{order:document.getElementById('reorder-order').value},'rb-reorder','reorder')">
         <span class="btn-spinner" id="sp-reorder"></span><span>Reorder Pages</span>
@@ -387,19 +391,17 @@
         <div class="card-icon" style="--ci-bg:rgba(17,138,178,.1);--ci-bd:rgba(17,138,178,.25)">📄</div>
         <div>
           <div class="card-title">Insert Blank Pages</div>
-          <div class="card-desc">Add empty pages at specific positions</div>
+          <div class="card-desc">Click "+" between pages to insert blanks</div>
         </div>
       </div>
       <div class="drop-zone" id="dz-insertblank" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-insertblank')">
-        <input type="file" id="fi-insertblank" accept=".pdf" onchange="onFileChange(this,'dz-insertblank')">
+        <input type="file" id="fi-insertblank" accept=".pdf" onchange="onFileChange(this,'dz-insertblank'); initInsertBlank('fi-insertblank')">
         <div class="drop-icon">📂</div>
         <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
         <div class="file-list" id="fl-insertblank"></div>
       </div>
-      <div class="field-row">
-        <span class="field-label">Insert after pages</span>
-        <input type="text" id="insertblank-after" class="field-input" placeholder="e.g. 1,3,5 — leave empty for end">
-      </div>
+      <div id="insertblank-grid" style="display:none"></div>
+      <input type="hidden" id="insertblank-after">
       <button class="btn" style="--btn-color:#118ab2;--btn-text:#fff"
               onclick="submitOne('insert-blank','fi-insertblank',{after:document.getElementById('insertblank-after').value},'rb-insertblank','insertblank')">
         <span class="btn-spinner" id="sp-insertblank"></span><span>Insert Blank Pages</span>
@@ -413,19 +415,17 @@
         <div class="card-icon" style="--ci-bg:rgba(7,59,76,.12);--ci-bd:rgba(7,59,76,.25)">✂️</div>
         <div>
           <div class="card-title">Crop Pages</div>
-          <div class="card-desc">Trim page margins — define a crop box</div>
+          <div class="card-desc">Trim page margins using visual sliders</div>
         </div>
       </div>
       <div class="drop-zone" id="dz-crop" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-crop')">
-        <input type="file" id="fi-crop" accept=".pdf" onchange="onFileChange(this,'dz-crop')">
+        <input type="file" id="fi-crop" accept=".pdf" onchange="onFileChange(this,'dz-crop'); initCropSliders()">
         <div class="drop-icon">📂</div>
         <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
         <div class="file-list" id="fl-crop"></div>
       </div>
-      <div class="field-row">
-        <span class="field-label">Crop box</span>
-        <input type="text" id="crop-box" class="field-input" placeholder="[0 0 400 600]">
-      </div>
+      <div id="crop-sliders" style="display:none"></div>
+      <input type="hidden" id="crop-box">
       <button class="btn" style="--btn-color:#073b4c;--btn-text:#fff"
               onclick="submitOne('crop','fi-crop',{box:document.getElementById('crop-box').value},'rb-crop','crop')">
         <span class="btn-spinner" id="sp-crop"></span><span>Crop Pages</span>
@@ -833,6 +833,45 @@
       <button class="btn" style="--btn-color:#80ffdb;--btn-text:#111" onclick="submitSplit()">
         <span class="btn-spinner" id="sp-split-modal"></span>
         <span>Split PDF</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Premium Upsell Modal -->
+<div class="modal-overlay" id="premiumModal" onclick="if(event.target===this)closePremiumModal()">
+  <div class="modal-box">
+    <div class="modal-icon">👑</div>
+    <div class="modal-title">Premium Required</div>
+    <div class="modal-text">Files over 50 MB require a premium account. Sign in or upgrade to process larger files.</div>
+    <div class="modal-detail">
+      <span>File: <strong id="premium-filename"></strong></span>
+      <span>Size: <strong id="premium-size"></strong></span>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-ghost" onclick="closePremiumModal()">Cancel</button>
+      <a href="#" class="modal-btn modal-btn-primary" onclick="closePremiumModal()">🔒 Sign In / Upgrade</a>
+    </div>
+  </div>
+</div>
+
+<!-- File Manager Modal -->
+<div class="modal-overlay" id="fileManagerModal" onclick="if(event.target===this)closeFileManager()">
+  <div class="fm-modal-box">
+    <div class="fm-header">
+      <h3>📂 Manage Files</h3>
+      <button class="fm-remove" onclick="closeFileManager()" style="font-size:1.2rem">✕</button>
+    </div>
+    <div class="fm-count" id="fmCount">0 files selected</div>
+    <div class="fm-list" id="fmFileList">
+      <div class="fm-empty">No files yet — click "Add Files" to start</div>
+    </div>
+    <div class="fm-footer">
+      <button class="btn" style="--btn-color:var(--accent2);--btn-text:#fff" onclick="fmPickFiles()">
+        <span>＋ Add Files</span>
+      </button>
+      <button class="btn" id="fmSubmitBtn" style="--btn-color:var(--accent);--btn-text:#fff" onclick="fmSubmit()" disabled>
+        <span>Process Files</span>
       </button>
     </div>
   </div>

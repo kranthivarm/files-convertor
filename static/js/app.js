@@ -182,11 +182,42 @@ function setLoading(key, on) {
   if (btn) btn.disabled = on;
 }
 
+/* ── Premium file size gate (50 MB) ──────────────────────── */
+const MAX_FREE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+function checkFileSizeLimit(files) {
+  if (!files) return true;
+  for (const f of files) {
+    if (f.size > MAX_FREE_SIZE) {
+      showPremiumModal(f.name, f.size);
+      return false;
+    }
+  }
+  return true;
+}
+
+function showPremiumModal(filename, size) {
+  const mb = (size / (1024 * 1024)).toFixed(1);
+  const modal = document.getElementById('premiumModal');
+  if (modal) {
+    document.getElementById('premium-filename').textContent = filename;
+    document.getElementById('premium-size').textContent = mb + ' MB';
+    modal.classList.add('open');
+  } else {
+    toast(`"${filename}" is ${mb} MB — files over 50 MB require a premium account`);
+  }
+}
+
+function closePremiumModal() {
+  document.getElementById('premiumModal')?.classList.remove('open');
+}
+
 /* ── Submit helpers — now handle binary blob responses ───── */
 
 async function submitOne(endpoint, inputId, extras, resultId, key) {
   const files = getFiles(inputId);
   if (!files || files.length === 0) { toast('Please select a file first'); return; }
+  if (!checkFileSizeLimit(files)) return;
   const fd = new FormData();
   fd.append('file', files[0]);
   for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
@@ -197,14 +228,12 @@ async function submitOne(endpoint, inputId, extras, resultId, key) {
       const data = await res.json();
       showResult(resultId, false, data);
     } else {
-      // Binary blob response — create a download link
       const blob = await res.blob();
       const disposition = res.headers.get('Content-Disposition') || '';
       const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
       const filename = filenameMatch ? filenameMatch[1] : 'download';
       const url = URL.createObjectURL(blob);
 
-      // Build metadata for compress
       const meta = {};
       const origSize = res.headers.get('X-Original-Size');
       const compSize = res.headers.get('X-Compressed-Size');
@@ -224,6 +253,7 @@ async function submitOne(endpoint, inputId, extras, resultId, key) {
 async function submitMany(endpoint, inputId, extras, resultId, key) {
   const files = getFiles(inputId);
   if (!files || files.length === 0) { toast('Please select files first'); return; }
+  if (!checkFileSizeLimit(files)) return;
   const fd = new FormData();
   for (const f of files) fd.append('files', f);
   for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
@@ -252,6 +282,7 @@ async function submitMany(endpoint, inputId, extras, resultId, key) {
 async function submitJson(endpoint, inputId, extras, resultId, key) {
   const files = getFiles(inputId);
   if (!files || files.length === 0) { toast('Please select a file first'); return; }
+  if (!checkFileSizeLimit(files)) return;
   const fd = new FormData();
   fd.append('file', files[0]);
   for (const [k, v] of Object.entries(extras)) fd.append(k, String(v));
@@ -301,10 +332,27 @@ function showBlobResult(id, blobUrl, filename, meta) {
     const next = (meta.newSize / 1024).toFixed(1);
     metaHtml = `<div class="result-meta">${orig} KB → ${next} KB &nbsp;·&nbsp; saved ~${meta.savings || 0}%</div>`;
   }
+
+  // PDF preview — show inline iframe for PDF files
+  const isPdf = filename.toLowerCase().endsWith('.pdf');
+  const previewHtml = isPdf
+    ? `<div class="result-preview-wrap">
+         <div class="result-preview-bar">
+           <span>📄 Preview</span>
+           <button class="result-preview-toggle" onclick="this.closest('.result-preview-wrap').classList.toggle('collapsed')">▼</button>
+         </div>
+         <iframe class="result-preview" src="${blobUrl}" title="PDF Preview"></iframe>
+       </div>`
+    : '';
+
   box.innerHTML = `<div class="result-inner ok">
     <div class="result-msg">✓ Processed successfully</div>
     ${metaHtml}
-    <a class="dl-btn" href="${blobUrl}" download="${filename}">↓ Download ${filename}</a>
+    <div class="result-actions">
+      <a class="dl-btn" href="${blobUrl}" download="${filename}">↓ Download ${filename}</a>
+      ${isPdf ? `<a class="dl-btn preview-btn" href="${blobUrl}" target="_blank">🔍 Open in New Tab</a>` : ''}
+    </div>
+    ${previewHtml}
   </div>`;
   box.classList.add('show');
 }
@@ -728,3 +776,343 @@ async function submitSplit() {
     }
   }
 })();
+
+/* ── File Manager Modal ──────────────────────────────────── */
+let fmFiles = [];     // array of { file, id }
+let fmNextId = 0;
+let fmCallback = null;
+let fmAccept = '';
+
+function openFileManager(accept, callback) {
+  fmFiles = [];
+  fmNextId = 0;
+  fmCallback = callback;
+  fmAccept = accept;
+  const modal = document.getElementById('fileManagerModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  renderFmList();
+  // Auto-open file picker
+  fmPickFiles();
+}
+
+function closeFileManager() {
+  document.getElementById('fileManagerModal')?.classList.remove('open');
+}
+
+function fmPickFiles() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = fmAccept;
+  input.multiple = true;
+  input.onchange = () => {
+    for (const f of input.files) {
+      fmFiles.push({ file: f, id: fmNextId++ });
+    }
+    renderFmList();
+  };
+  input.click();
+}
+
+function fmRemoveFile(id) {
+  fmFiles = fmFiles.filter(f => f.id !== id);
+  renderFmList();
+}
+
+function renderFmList() {
+  const list = document.getElementById('fmFileList');
+  const count = document.getElementById('fmCount');
+  const submitBtn = document.getElementById('fmSubmitBtn');
+  if (!list) return;
+
+  count.textContent = `${fmFiles.length} file${fmFiles.length !== 1 ? 's' : ''} selected`;
+  submitBtn.disabled = fmFiles.length === 0;
+
+  if (fmFiles.length === 0) {
+    list.innerHTML = '<div class="fm-empty">No files yet — click "Add Files" to start</div>';
+    return;
+  }
+
+  list.innerHTML = fmFiles.map((item, idx) => {
+    const f = item.file;
+    const sizeKB = (f.size / 1024).toFixed(1);
+    const isImg = f.type.startsWith('image/');
+    return `<div class="fm-item" draggable="true" data-idx="${idx}" data-id="${item.id}">
+      <span class="fm-drag">⠿</span>
+      <span class="fm-num">${idx + 1}</span>
+      ${isImg ? `<img class="fm-thumb" src="" data-file-id="${item.id}">` : '<span class="fm-thumb-icon">📄</span>'}
+      <span class="fm-name">${f.name}</span>
+      <span class="fm-size">${sizeKB} KB</span>
+      <button class="fm-remove" onclick="fmRemoveFile(${item.id})">✕</button>
+    </div>`;
+  }).join('');
+
+  // Load image thumbnails
+  list.querySelectorAll('img.fm-thumb').forEach(img => {
+    const item = fmFiles.find(f => f.id === parseInt(img.dataset.fileId));
+    if (item) {
+      const reader = new FileReader();
+      reader.onload = e => img.src = e.target.result;
+      reader.readAsDataURL(item.file);
+    }
+  });
+
+  // Wire up drag-to-reorder
+  list.querySelectorAll('.fm-item').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', el.dataset.idx);
+      el.classList.add('fm-dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('fm-dragging'));
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('fm-dragover'); });
+    el.addEventListener('dragleave', () => el.classList.remove('fm-dragover'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('fm-dragover');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = parseInt(el.dataset.idx);
+      if (fromIdx !== toIdx) {
+        const [moved] = fmFiles.splice(fromIdx, 1);
+        fmFiles.splice(toIdx, 0, moved);
+        renderFmList();
+      }
+    });
+  });
+}
+
+function fmSubmit() {
+  if (fmCallback && fmFiles.length > 0) {
+    // Create a fake file list from managed files
+    const dt = new DataTransfer();
+    fmFiles.forEach(item => dt.items.add(item.file));
+    fmCallback(dt.files);
+  }
+  closeFileManager();
+}
+
+/* ── Interactive Page Editing Helpers ─────────────────────── */
+
+async function fetchPageCount(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/page-count', { method: 'POST', body: fd });
+    const data = await res.json();
+    return data.pages || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Delete Pages — interactive page grid
+async function initDeletePages(inputId) {
+  const files = getFiles(inputId);
+  if (!files || files.length === 0) { toast('Please select a PDF first'); return; }
+  const container = document.getElementById('delpg-grid');
+  container.innerHTML = '<div class="page-grid-loading">Analyzing PDF...</div>';
+  container.style.display = 'block';
+  const count = await fetchPageCount(files[0]);
+  if (count === 0) { container.innerHTML = '<div class="page-grid-loading">Could not read pages</div>'; return; }
+
+  let html = '<div class="page-grid">';
+  for (let i = 1; i <= count; i++) {
+    html += `<label class="page-chip">
+      <input type="checkbox" value="${i}" onchange="updateDeletePagesValue()">
+      <span>${i}</span>
+    </label>`;
+  }
+  html += '</div><div class="page-grid-hint">Click pages to select them for deletion</div>';
+  container.innerHTML = html;
+}
+
+function updateDeletePagesValue() {
+  const checked = Array.from(document.querySelectorAll('#delpg-grid input:checked')).map(cb => cb.value);
+  document.getElementById('delpg-pages').value = checked.join(',');
+}
+
+// Reorder Pages — interactive drag pills
+async function initReorderPages(inputId) {
+  const files = getFiles(inputId);
+  if (!files || files.length === 0) { toast('Please select a PDF first'); return; }
+  const container = document.getElementById('reorder-grid');
+  container.innerHTML = '<div class="page-grid-loading">Analyzing PDF...</div>';
+  container.style.display = 'block';
+  const count = await fetchPageCount(files[0]);
+  if (count === 0) { container.innerHTML = '<div class="page-grid-loading">Could not read pages</div>'; return; }
+
+  const pages = Array.from({ length: count }, (_, i) => i + 1);
+  renderReorderGrid(container, pages);
+}
+
+function renderReorderGrid(container, pages) {
+  let html = '<div class="page-grid reorder-grid">';
+  pages.forEach((p, idx) => {
+    html += `<div class="page-pill" draggable="true" data-idx="${idx}" data-page="${p}">
+      <span class="page-pill-drag">⠿</span> Page ${p}
+    </div>`;
+  });
+  html += '</div><div class="page-grid-hint">Drag pages to reorder them</div>';
+  container.innerHTML = html;
+
+  // Wire drag
+  container.querySelectorAll('.page-pill').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', el.dataset.idx);
+      el.classList.add('fm-dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('fm-dragging'));
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('fm-dragover'); });
+    el.addEventListener('dragleave', () => el.classList.remove('fm-dragover'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('fm-dragover');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = parseInt(el.dataset.idx);
+      if (fromIdx !== toIdx) {
+        const [moved] = pages.splice(fromIdx, 1);
+        pages.splice(toIdx, 0, moved);
+        renderReorderGrid(container, pages);
+        document.getElementById('reorder-order').value = pages.join(',');
+      }
+    });
+  });
+
+  document.getElementById('reorder-order').value = pages.join(',');
+}
+
+// Insert Blank — visual page list with + buttons
+async function initInsertBlank(inputId) {
+  const files = getFiles(inputId);
+  if (!files || files.length === 0) { toast('Please select a PDF first'); return; }
+  const container = document.getElementById('insertblank-grid');
+  container.innerHTML = '<div class="page-grid-loading">Analyzing PDF...</div>';
+  container.style.display = 'block';
+  const count = await fetchPageCount(files[0]);
+  if (count === 0) { container.innerHTML = '<div class="page-grid-loading">Could not read pages</div>'; return; }
+
+  let insertAfter = new Set();
+  let html = '<div class="insert-grid">';
+  for (let i = 1; i <= count; i++) {
+    html += `<div class="insert-page">Page ${i}</div>`;
+    html += `<button class="insert-btn" data-after="${i}" onclick="toggleInsertAfter(this, ${i})">+ Insert blank</button>`;
+  }
+  html += '</div><div class="page-grid-hint">Click "+" buttons where you want blank pages inserted</div>';
+  container.innerHTML = html;
+  window._insertAfterSet = new Set();
+}
+
+function toggleInsertAfter(btn, pageNum) {
+  if (window._insertAfterSet.has(pageNum)) {
+    window._insertAfterSet.delete(pageNum);
+    btn.classList.remove('active');
+  } else {
+    window._insertAfterSet.add(pageNum);
+    btn.classList.add('active');
+  }
+  document.getElementById('insertblank-after').value = Array.from(window._insertAfterSet).sort((a,b)=>a-b).join(',');
+}
+
+// Crop — percentage sliders
+function initCropSliders() {
+  const container = document.getElementById('crop-sliders');
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div class="crop-slider-row">
+      <label>Top margin</label>
+      <input type="range" min="0" max="50" value="0" oninput="updateCropBox()" id="crop-top">
+      <span class="range-val" id="crop-top-val">0%</span>
+    </div>
+    <div class="crop-slider-row">
+      <label>Bottom margin</label>
+      <input type="range" min="0" max="50" value="0" oninput="updateCropBox()" id="crop-bottom">
+      <span class="range-val" id="crop-bottom-val">0%</span>
+    </div>
+    <div class="crop-slider-row">
+      <label>Left margin</label>
+      <input type="range" min="0" max="50" value="0" oninput="updateCropBox()" id="crop-left">
+      <span class="range-val" id="crop-left-val">0%</span>
+    </div>
+    <div class="crop-slider-row">
+      <label>Right margin</label>
+      <input type="range" min="0" max="50" value="0" oninput="updateCropBox()" id="crop-right">
+      <span class="range-val" id="crop-right-val">0%</span>
+    </div>
+    <div class="crop-preview-box" id="crop-preview">
+      <div class="crop-preview-inner" id="crop-preview-inner"></div>
+    </div>
+  `;
+  updateCropBox();
+}
+
+function updateCropBox() {
+  const top = parseInt(document.getElementById('crop-top').value);
+  const bottom = parseInt(document.getElementById('crop-bottom').value);
+  const left = parseInt(document.getElementById('crop-left').value);
+  const right = parseInt(document.getElementById('crop-right').value);
+
+  document.getElementById('crop-top-val').textContent = top + '%';
+  document.getElementById('crop-bottom-val').textContent = bottom + '%';
+  document.getElementById('crop-left-val').textContent = left + '%';
+  document.getElementById('crop-right-val').textContent = right + '%';
+
+  // Update visual preview
+  const inner = document.getElementById('crop-preview-inner');
+  if (inner) {
+    inner.style.top = top + '%';
+    inner.style.bottom = bottom + '%';
+    inner.style.left = left + '%';
+    inner.style.right = right + '%';
+  }
+
+  // Convert to approximate points (A4 = 595 x 842)
+  const w = 595, h = 842;
+  const x1 = Math.round(w * left / 100);
+  const y1 = Math.round(h * bottom / 100);
+  const x2 = Math.round(w * (100 - right) / 100);
+  const y2 = Math.round(h * (100 - top) / 100);
+  document.getElementById('crop-box').value = `[${x1} ${y1} ${x2} ${y2}]`;
+}
+
+// Fill Form — auto-detect fields
+async function initFillForm(inputId) {
+  const files = getFiles(inputId);
+  if (!files || files.length === 0) { toast('Please select a PDF first'); return; }
+  const container = document.getElementById('fillform-fields-grid');
+  container.innerHTML = '<div class="page-grid-loading">Detecting form fields...</div>';
+  container.style.display = 'block';
+
+  const fd = new FormData();
+  fd.append('file', files[0]);
+  try {
+    const res = await fetch('/api/form-fields', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.fields || data.fields.length === 0) {
+      container.innerHTML = '<div class="page-grid-hint">No fillable form fields found in this PDF</div>';
+      return;
+    }
+    let html = '<div class="form-fields-auto">';
+    data.fields.forEach(field => {
+      const name = field.name || field.Name || 'unknown';
+      const val  = field.value || field.Value || '';
+      html += `<div class="form-field-row">
+        <label class="form-field-label">${name}</label>
+        <input type="text" class="field-input form-field-input" data-field-name="${name}" value="${val}" placeholder="Enter value...">
+      </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div class="page-grid-hint">Error: ${err.message}</div>`;
+  }
+}
+
+function collectFormFields() {
+  const inputs = document.querySelectorAll('#fillform-fields-grid .form-field-input');
+  const pairs = [];
+  inputs.forEach(inp => {
+    if (inp.value.trim()) {
+      pairs.push(`${inp.dataset.fieldName}=${inp.value.trim()}`);
+    }
+  });
+  document.getElementById('fillform-fields').value = pairs.join('; ');
+}
