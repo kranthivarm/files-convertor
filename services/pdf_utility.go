@@ -1,6 +1,7 @@
 package services
 
 import (
+	archivezip "archive/zip"
 	"bytes"
 	"fmt"
 	"image"
@@ -106,6 +107,42 @@ func JPGToPDF(imageReaders []io.Reader, w io.Writer) error {
 		return err
 	}
 	return api.ImportImages(nil, w, imageReaders, imp, conf())
+}
+
+// JPGToPDFZip converts each image to an individual PDF and zips them.
+func JPGToPDFZip(imageReaders []io.Reader, names []string, w io.Writer) error {
+	imp, err := api.Import("dpi:72, pos:full, sc:1.0 abs", types.POINTS)
+	if err != nil {
+		return err
+	}
+
+	zw := archivezip.NewWriter(w)
+	defer zw.Close()
+
+	for i, rdr := range imageReaders {
+		var buf bytes.Buffer
+		if err := api.ImportImages(nil, &buf, []io.Reader{rdr}, imp, conf()); err != nil {
+			return fmt.Errorf("converting image %d: %w", i+1, err)
+		}
+		name := fmt.Sprintf("image_%d.pdf", i+1)
+		if i < len(names) {
+			base := strings.TrimSuffix(names[i], ".jpg")
+			base = strings.TrimSuffix(base, ".jpeg")
+			base = strings.TrimSuffix(base, ".png")
+			base = strings.TrimSuffix(base, ".gif")
+			base = strings.TrimSuffix(base, ".tiff")
+			base = strings.TrimSuffix(base, ".webp")
+			name = base + ".pdf"
+		}
+		fw, err := zw.Create(name)
+		if err != nil {
+			return err
+		}
+		if _, err := fw.Write(buf.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ──────────────────────────────────────────────────────────

@@ -270,13 +270,28 @@ func JPGToPDF(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="images.pdf"`)
-	c.Status(200)
+	mode := c.PostForm("mode") // "merged" (default) or "zip"
 
-	if err := services.JPGToPDF(imgReaders, c.Writer); err != nil {
-		c.Error(err)
-		return
+	if mode == "zip" {
+		// Each image → separate PDF → zip all
+		c.Header("Content-Type", "application/zip")
+		c.Header("Content-Disposition", `attachment; filename="images_as_pdfs.zip"`)
+		c.Status(200)
+
+		if err := services.JPGToPDFZip(imgReaders, names, c.Writer); err != nil {
+			c.Error(err)
+			return
+		}
+	} else {
+		// Default: merge all into one PDF
+		c.Header("Content-Type", "application/pdf")
+		c.Header("Content-Disposition", `attachment; filename="images.pdf"`)
+		c.Status(200)
+
+		if err := services.JPGToPDF(imgReaders, c.Writer); err != nil {
+			c.Error(err)
+			return
+		}
 	}
 	logOp(c, "jpg-to-pdf", names[0])
 }

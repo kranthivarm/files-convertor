@@ -644,22 +644,20 @@
         <div class="card-icon" style="--ci-bg:rgba(67,170,139,.1);--ci-bd:rgba(67,170,139,.25)">📝</div>
         <div>
           <div class="card-title">Fill Form</div>
-          <div class="card-desc">Fill PDF form fields with data</div>
+          <div class="card-desc">Upload a PDF — form fields are detected automatically</div>
         </div>
       </div>
       <div class="drop-zone" id="dz-fillform" ondragover="onDragOver(event,this)" ondragleave="onDragLeave(this)" ondrop="onDrop(event,this,'fi-fillform')">
-        <input type="file" id="fi-fillform" accept=".pdf" onchange="onFileChange(this,'dz-fillform')">
+        <input type="file" id="fi-fillform" accept=".pdf" onchange="onFileChange(this,'dz-fillform'); initFillForm('fi-fillform')">
         <div class="drop-icon">📂</div>
         <div class="drop-text"><strong>Click or drag</strong> a PDF here</div>
         <div class="file-list" id="fl-fillform"></div>
       </div>
-      <div class="field-row">
-        <span class="field-label">Fields (name=value; ...)</span>
-        <input type="text" id="fillform-fields" class="field-input" placeholder="e.g. FirstName=John; LastName=Doe">
-      </div>
+      <div id="fillform-fields-grid" style="display:none"></div>
+      <input type="hidden" id="fillform-fields">
       <button class="btn" style="--btn-color:#43aa8b;--btn-text:#fff"
-              onclick="submitOne('fill-form','fi-fillform',{fields:document.getElementById('fillform-fields').value},'rb-fillform','fillform')">
-        <span class="btn-spinner" id="sp-fillform"></span><span>Fill Form</span>
+              onclick="collectFormFields(); submitOne('fill-form','fi-fillform',{fields:document.getElementById('fillform-fields').value},'rb-fillform','fillform')">
+        <span class="btn-spinner" id="sp-fillform"></span><span>Fill & Download</span>
       </button>
       <div class="result-box" id="rb-fillform"></div>
     </div>
