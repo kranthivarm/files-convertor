@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: ilovepdf
+    name: file-convertions
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
