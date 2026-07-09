@@ -875,6 +875,21 @@
   </div>
 </div>
 
+<!-- Fullscreen PDF Preview Modal -->
+<div class="preview-overlay" id="previewModal">
+  <div class="preview-header">
+    <div class="preview-title-area">
+      <span class="preview-icon">📄</span>
+      <span class="preview-title" id="previewTitle">document.pdf</span>
+    </div>
+    <div class="preview-header-actions">
+      <a class="preview-dl-btn" id="previewDownload" href="#" download>↓ Download</a>
+      <button class="preview-close-btn" onclick="closePreviewModal()">✕</button>
+    </div>
+  </div>
+  <iframe class="preview-frame" id="previewIframe" src="" title="PDF Preview"></iframe>
+</div>
+
 <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -333,28 +333,41 @@ function showBlobResult(id, blobUrl, filename, meta) {
     metaHtml = `<div class="result-meta">${orig} KB → ${next} KB &nbsp;·&nbsp; saved ~${meta.savings || 0}%</div>`;
   }
 
-  // PDF preview — show inline iframe for PDF files
   const isPdf = filename.toLowerCase().endsWith('.pdf');
-  const previewHtml = isPdf
-    ? `<div class="result-preview-wrap">
-         <div class="result-preview-bar">
-           <span>📄 Preview</span>
-           <button class="result-preview-toggle" onclick="this.closest('.result-preview-wrap').classList.toggle('collapsed')">▼</button>
-         </div>
-         <iframe class="result-preview" src="${blobUrl}" title="PDF Preview"></iframe>
-       </div>`
-    : '';
 
   box.innerHTML = `<div class="result-inner ok">
     <div class="result-msg">✓ Processed successfully</div>
     ${metaHtml}
     <div class="result-actions">
       <a class="dl-btn" href="${blobUrl}" download="${filename}">↓ Download ${filename}</a>
-      ${isPdf ? `<a class="dl-btn preview-btn" href="${blobUrl}" target="_blank">🔍 Open in New Tab</a>` : ''}
+      ${isPdf ? `<button class="dl-btn preview-btn" onclick="openPreviewModal('${blobUrl}', '${filename.replace(/'/g, "\\'")}')">👁 Preview</button>` : ''}
     </div>
-    ${previewHtml}
   </div>`;
   box.classList.add('show');
+}
+
+/* ── Fullscreen Preview Modal ────────────────────────────── */
+function openPreviewModal(url, filename) {
+  const modal = document.getElementById('previewModal');
+  const iframe = document.getElementById('previewIframe');
+  const title = document.getElementById('previewTitle');
+  const dlLink = document.getElementById('previewDownload');
+  if (!modal) return;
+  title.textContent = filename;
+  iframe.src = url;
+  dlLink.href = url;
+  dlLink.download = filename;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById('previewModal');
+  const iframe = document.getElementById('previewIframe');
+  if (!modal) return;
+  modal.classList.remove('open');
+  iframe.src = '';
+  document.body.style.overflow = '';
 }
 
 function showResult(id, success, data) {
