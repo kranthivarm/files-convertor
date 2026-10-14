@@ -15,20 +15,21 @@ import (
 // ──────────────────────────────────────────────────────────
 
 func ListFormFieldsHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	fields, err := services.ListFormFields(rs)
+	fields, err := services.ListFormFields(handle)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"filename": origName,
+		"filename": handle.Name,
 		"fields":   fields,
 		"count":    len(fields),
 	})
@@ -39,11 +40,12 @@ func ListFormFieldsHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func FillFormHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
 	// Accept JSON data either as form field or as second file
 	jsonData := []byte(c.DefaultPostForm("data", ""))
@@ -83,14 +85,10 @@ func FillFormHandler(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="filled.pdf"`)
-	c.Status(200)
-	if err := services.FillForm(rs, jsonData, c.Writer); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "fill-form", origName)
+	safeStream(c, "application/pdf", "filled.pdf", func(w io.Writer) error {
+		return services.FillForm(handle, jsonData, w)
+	})
+	logOp(c, "fill-form", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -98,20 +96,17 @@ func FillFormHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func FlattenFormHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="flattened.pdf"`)
-	c.Status(200)
-	if err := services.FlattenForm(rs, c.Writer); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "flatten-form", origName)
+	safeStream(c, "application/pdf", "flattened.pdf", func(w io.Writer) error {
+		return services.FlattenForm(handle, w)
+	})
+	logOp(c, "flatten-form", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -119,13 +114,14 @@ func FlattenFormHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func ExportFormHandler(c *gin.Context) {
-	rs, _, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	jsonBytes, err := services.ExportFormJSON(rs)
+	jsonBytes, err := services.ExportFormJSON(handle)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return

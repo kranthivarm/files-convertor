@@ -35,6 +35,9 @@ func ProtectFilesHandler(c *gin.Context) {
 		return
 	}
 
+	// For EncryptedZipFiles we need the full data in NamedBuffers,
+	// because the zip writer needs random access to write encrypted entries.
+	// This is one place where io.ReadAll is unavoidable.
 	var files []services.NamedBuffer
 	for _, fh := range fhs {
 		f, err := fh.Open()
@@ -51,14 +54,9 @@ func ProtectFilesHandler(c *gin.Context) {
 		files = append(files, services.NamedBuffer{Name: fh.Filename, Data: data})
 	}
 
-	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", `attachment; filename="protected.zip"`)
-	c.Status(200)
-
-	if err := services.EncryptedZipFiles(files, password, c.Writer); err != nil {
-		c.Error(err)
-		return
-	}
+	safeStream(c, "application/zip", "protected.zip", func(w io.Writer) error {
+		return services.EncryptedZipFiles(files, password, w)
+	})
 
 	if len(fhs) > 0 {
 		logOp(c, "protect-files", fhs[0].Filename)

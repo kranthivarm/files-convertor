@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,18 +25,21 @@ func ComparePDFsHandler(c *gin.Context) {
 		return
 	}
 
-	rs1, _, err := readOneFromHeader(fhs[0])
+	h1, err := readOneFromHeader(fhs[0])
 	if err != nil {
 		sendError(c, 400, "Could not read first file: "+err.Error())
 		return
 	}
-	rs2, _, err := readOneFromHeader(fhs[1])
+	defer h1.Close()
+
+	h2, err := readOneFromHeader(fhs[1])
 	if err != nil {
 		sendError(c, 400, "Could not read second file: "+err.Error())
 		return
 	}
+	defer h2.Close()
 
-	result, err := services.ComparePDFs(rs1, rs2)
+	result, err := services.ComparePDFs(h1, h2)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return
@@ -50,18 +54,15 @@ func ComparePDFsHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func RepairPDFHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="repaired.pdf"`)
-	c.Status(200)
-	if err := services.RepairPDF(rs, c.Writer); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "repair", origName)
+	safeStream(c, "application/pdf", "repaired.pdf", func(w io.Writer) error {
+		return services.RepairPDF(handle, w)
+	})
+	logOp(c, "repair", handle.Name)
 }

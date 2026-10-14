@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -15,11 +16,13 @@ import (
 // ──────────────────────────────────────────────────────────
 
 func DeletePagesHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
+
 	pages := strings.TrimSpace(c.DefaultPostForm("pages", ""))
 	if pages == "" {
 		sendError(c, 400, "Specify pages to delete, e.g. '1,3,5' or '2-4'")
@@ -27,14 +30,10 @@ func DeletePagesHandler(c *gin.Context) {
 	}
 	pageList := splitPages(pages)
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="edited.pdf"`)
-	c.Status(200)
-	if err := services.DeletePages(rs, c.Writer, pageList); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "delete-pages", origName)
+	safeStream(c, "application/pdf", "edited.pdf", func(w io.Writer) error {
+		return services.DeletePages(handle, w, pageList)
+	})
+	logOp(c, "delete-pages", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -42,11 +41,13 @@ func DeletePagesHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func ReorderPagesHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
+
 	order := strings.TrimSpace(c.DefaultPostForm("order", ""))
 	if order == "" {
 		sendError(c, 400, "Specify page order, e.g. '3,1,2,5,4'")
@@ -54,14 +55,10 @@ func ReorderPagesHandler(c *gin.Context) {
 	}
 	pageOrder := splitPages(order)
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="reordered.pdf"`)
-	c.Status(200)
-	if err := services.ReorderPages(rs, c.Writer, pageOrder); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "reorder-pages", origName)
+	safeStream(c, "application/pdf", "reordered.pdf", func(w io.Writer) error {
+		return services.ReorderPages(handle, w, pageOrder)
+	})
+	logOp(c, "reorder-pages", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -69,11 +66,13 @@ func ReorderPagesHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func CropPagesHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
+
 	box := strings.TrimSpace(c.DefaultPostForm("box", ""))
 	if box == "" {
 		sendError(c, 400, "Specify crop box, e.g. '[0 0 400 600]'")
@@ -81,14 +80,10 @@ func CropPagesHandler(c *gin.Context) {
 	}
 	pages := splitPages(c.DefaultPostForm("pages", ""))
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="cropped.pdf"`)
-	c.Status(200)
-	if err := services.CropPages(rs, c.Writer, pages, box); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "crop", origName)
+	safeStream(c, "application/pdf", "cropped.pdf", func(w io.Writer) error {
+		return services.CropPages(handle, w, pages, box)
+	})
+	logOp(c, "crop", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -96,22 +91,20 @@ func CropPagesHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func InsertBlankHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
+
 	afterPages := splitPages(c.DefaultPostForm("after", ""))
 	beforeFlag := c.DefaultPostForm("mode", "after") == "before"
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="with_blanks.pdf"`)
-	c.Status(200)
-	if err := services.InsertBlankPages(rs, c.Writer, afterPages, beforeFlag); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "insert-blank", origName)
+	safeStream(c, "application/pdf", "with_blanks.pdf", func(w io.Writer) error {
+		return services.InsertBlankPages(handle, w, afterPages, beforeFlag)
+	})
+	logOp(c, "insert-blank", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -119,22 +112,20 @@ func InsertBlankHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func AddPageNumbersHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
+
 	position := c.DefaultPostForm("position", "bottom-center")
 	startNum := 1
 
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Disposition", `attachment; filename="numbered.pdf"`)
-	c.Status(200)
-	if err := services.AddPageNumbers(rs, c.Writer, position, startNum); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "page-numbers", origName)
+	safeStream(c, "application/pdf", "numbered.pdf", func(w io.Writer) error {
+		return services.AddPageNumbers(handle, w, position, startNum)
+	})
+	logOp(c, "page-numbers", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -142,24 +133,25 @@ func AddPageNumbersHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func ExtractTextHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	pages, err := services.ExtractText(rs)
+	pages, err := services.ExtractText(handle)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"filename": origName,
+		"filename": handle.Name,
 		"pages":    pages,
 		"count":    len(pages),
 	})
-	logOp(c, "extract-text", origName)
+	logOp(c, "extract-text", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -167,13 +159,14 @@ func ExtractTextHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func ExtractImagesHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
+	defer handle.Close()
 
-	images, err := services.ExtractImages(rs)
+	images, err := services.ExtractImages(handle)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return
@@ -183,14 +176,10 @@ func ExtractImagesHandler(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", `attachment; filename="extracted_images.zip"`)
-	c.Status(200)
-	if err := services.ZipImageData(images, c.Writer); err != nil {
-		c.Error(err)
-		return
-	}
-	logOp(c, "extract-images", origName)
+	safeStream(c, "application/zip", "extracted_images.zip", func(w io.Writer) error {
+		return services.ZipImageData(images, w)
+	})
+	logOp(c, "extract-images", handle.Name)
 }
 
 // ──────────────────────────────────────────────────────────
@@ -198,17 +187,19 @@ func ExtractImagesHandler(c *gin.Context) {
 // ──────────────────────────────────────────────────────────
 
 func PageCountHandler(c *gin.Context) {
-	rs, origName, err := readOne(c, "file")
+	handle, err := readOne(c, "file")
 	if err != nil {
 		sendError(c, 400, err.Error())
 		return
 	}
-	count, err := services.GetPageCount(rs)
+	defer handle.Close()
+
+	count, err := services.GetPageCount(handle)
 	if err != nil {
 		sendError(c, 500, err.Error())
 		return
 	}
-	c.JSON(200, gin.H{"filename": origName, "pages": count})
+	c.JSON(200, gin.H{"filename": handle.Name, "pages": count})
 }
 
 // ──────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+
 	"i-lov-pdf/db"
 	"i-lov-pdf/middleware"
 	"i-lov-pdf/routes"
@@ -21,6 +22,18 @@ func main() {
 
 	r := gin.Default()
 	r.Use(middleware.CORSMiddleware())
+
+	// ── Fix 2: Guard against DoS ──────────────────────────
+	//
+	// MaxMultipartMemory controls how much Go keeps in RAM
+	// during multipart parsing. Files beyond this threshold
+	// are transparently spooled to OS temp files (/tmp),
+	// backed by a kernel-managed file descriptor.
+	//
+	// 32 MB = reasonable default. Files > 32 MB get a temp
+	// file instead of a heap allocation, preventing OOM.
+	r.MaxMultipartMemory = 32 << 20 // 32 MB
+
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
 
