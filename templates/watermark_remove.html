@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Automatically detect and remove watermarks from videos — just upload your video and let the engine do the work.">
+<title>Remove Video Watermark — ILovePDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+  /* ── Scoped styles for video tool page ──────────────────── */
+  .vt-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-m); font-size: .78rem;
+    color: var(--muted); text-decoration: none;
+    padding: 6px 14px; border-radius: 100px;
+    border: 1px solid var(--border);
+    transition: all .3s;
+  }
+  .vt-back:hover {
+    color: var(--text); border-color: var(--border-h);
+    background: rgba(255,255,255,.03);
+  }
+
+  .vt-hero { padding: 80px 2rem 48px; }
+  .vt-hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); margin-bottom: 14px; }
+  .vt-hero p { max-width: 560px; }
+
+  .vt-container {
+    max-width: 640px; margin: 0 auto;
+    padding: 0 2rem 5rem;
+    position: relative; z-index: 1;
+  }
+
+  .vt-card {
+    background: var(--glass);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    position: relative; overflow: hidden;
+    transition: all .35s cubic-bezier(.4,0,.2,1);
+  }
+  .vt-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent 10%, #48cae4 50%, transparent 90%);
+    opacity: .6;
+  }
+  .vt-card:hover {
+    border-color: rgba(255,255,255,.12);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .vt-card-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px;
+  }
+  .vt-card-icon {
+    width: 50px; height: 50px; border-radius: 14px;
+    background: rgba(72,202,228,.1);
+    border: 1px solid rgba(72,202,228,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; flex-shrink: 0;
+  }
+  .vt-card-title {
+    font-family: var(--font-d); font-size: 1.12rem; font-weight: 700;
+  }
+  .vt-card-desc {
+    font-size: .8rem; color: var(--muted); margin-top: 3px; line-height: 1.55;
+  }
+
+  /* File picker */
+  .vt-file-zone {
+    position: relative;
+    border: 1.5px dashed rgba(255,255,255,.08);
+    border-radius: var(--radius-sm);
+    padding: 36px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+    margin-bottom: 20px;
+    background: var(--drop-bg);
+  }
+  .vt-file-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .vt-file-zone:hover {
+    border-color: #48cae4;
+    background: rgba(72,202,228,.03);
+    box-shadow: inset 0 0 30px rgba(72,202,228,.02);
+  }
+  .vt-file-zone .drop-icon {
+    font-size: 2.2rem; margin-bottom: 10px;
+    filter: grayscale(.3);
+    transition: filter .3s, transform .3s;
+  }
+  .vt-file-zone:hover .drop-icon {
+    filter: grayscale(0);
+    transform: scale(1.1);
+  }
+  .vt-file-zone .drop-text { font-size: .84rem; color: var(--muted); line-height: 1.6; }
+  .vt-file-zone .drop-text strong { color: var(--text-soft); font-weight: 500; }
+  .vt-file-name {
+    font-family: var(--font-m); font-size: .72rem;
+    color: #48cae4; margin-top: 10px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* How it works section */
+  .vt-how {
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: rgba(72,202,228,.04);
+    border: 1px solid rgba(72,202,228,.1);
+    border-radius: var(--radius-sm);
+  }
+  .vt-how-title {
+    font-family: var(--font-d); font-size: .82rem; font-weight: 700;
+    color: #48cae4; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .vt-how-steps {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .vt-how-step {
+    font-size: .76rem; color: var(--muted);
+    line-height: 1.6;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .vt-how-num {
+    font-family: var(--font-m); font-size: .65rem;
+    background: rgba(72,202,228,.12);
+    color: #48cae4;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Submit button */
+  .vt-submit {
+    width: 100%; padding: 14px 16px;
+    border: none; border-radius: var(--radius-sm);
+    background: #48cae4;
+    color: #0a0a12;
+    font-family: var(--font-d); font-size: .95rem; font-weight: 700;
+    letter-spacing: .02em;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .25s cubic-bezier(.4,0,.2,1);
+    position: relative; overflow: hidden;
+  }
+  .vt-submit::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 60%);
+    opacity: 0; transition: opacity .3s;
+  }
+  .vt-submit:hover:not(:disabled)::before { opacity: 1; }
+  .vt-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 20px rgba(72,202,228,.3);
+  }
+  .vt-submit:active:not(:disabled) { transform: translateY(0); }
+  .vt-submit:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* Spinner */
+  .vt-spinner {
+    display: none;
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(0,0,0,.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin .65s linear infinite;
+  }
+  .vt-spinner.visible { display: block; }
+
+  /* Progress info */
+  .vt-progress {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: rgba(72,202,228,.04);
+    border: 1px solid rgba(72,202,228,.1);
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+  .vt-progress.show { display: block; }
+  .vt-progress-text {
+    font-family: var(--font-m); font-size: .76rem;
+    color: #48cae4;
+  }
+  .vt-progress-bar {
+    margin-top: 10px; height: 3px;
+    background: rgba(72,202,228,.12);
+    border-radius: 2px; overflow: hidden;
+  }
+  .vt-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #48cae4, #06d6a0);
+    border-radius: 2px;
+    animation: progressPulse 2s ease-in-out infinite;
+    width: 40%;
+  }
+  @keyframes progressPulse {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  /* Result area */
+  .vt-result {
+    display: none; margin-top: 20px;
+    border-radius: var(--radius-sm); overflow: hidden;
+    animation: slideUp .35s cubic-bezier(.4,0,.2,1);
+  }
+  .vt-result.show { display: block; }
+  .vt-result-inner {
+    padding: 16px 18px;
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-sm);
+  }
+  .vt-result-inner.ok {
+    background: rgba(6,214,160,.06);
+    border: 1px solid rgba(6,214,160,.18);
+  }
+  .vt-result-inner.err {
+    background: rgba(255,77,109,.06);
+    border: 1px solid rgba(255,77,109,.18);
+  }
+  .vt-result-msg { font-size: .84rem; margin-bottom: 10px; font-weight: 500; }
+  .vt-result-inner.ok .vt-result-msg { color: var(--success); }
+  .vt-result-inner.err .vt-result-msg { color: var(--accent); }
+
+  /* Toast */
+  .vt-toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(22,22,34,.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-h);
+    color: var(--text); padding: 10px 24px;
+    border-radius: 100px; font-family: var(--font-m); font-size: .78rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s, transform .3s;
+    z-index: 999; white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
+  .vt-toast.show {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+
+  /* Note card */
+  .vt-note {
+    margin-top: 20px;
+    font-size: .72rem; color: var(--muted);
+    line-height: 1.7;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .vt-note strong { color: var(--text-soft); }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<nav>
+  <div class="logo">Ilove<span>PDF</span></div>
+  <div class="nav-right">
+    <a href="/" class="vt-back">← Back to All Tools</a>
+    <span class="nav-tag accent">Video Tools</span>
+  </div>
+</nav>
+
+<header class="hero vt-hero">
+  <div class="hero-badge">
+    <span class="pulse-dot"></span>
+    Auto-Detection · FFmpeg Powered
+  </div>
+  <h1>Remove Video<br><em>Watermark</em></h1>
+  <p>Upload a video and the engine will automatically detect and remove static watermarks — no coordinates needed</p>
+</header>
+
+<main class="vt-container">
+  <div class="vt-card">
+    <div class="vt-card-header">
+      <div class="vt-card-icon">🎬</div>
+      <div>
+        <div class="vt-card-title">Auto Remove Watermark</div>
+        <div class="vt-card-desc">Detects and removes static watermark overlays automatically</div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="vt-how">
+      <div class="vt-how-title">⚡ How it works</div>
+      <div class="vt-how-steps">
+        <div class="vt-how-step">
+          <span class="vt-how-num">1</span>
+          <span>Sample frames are extracted from different parts of the video</span>
+        </div>
+        <div class="vt-how-step">
+          <span class="vt-how-num">2</span>
+          <span>Pixel variance analysis identifies static regions (watermarks stay fixed while content moves)</span>
+        </div>
+        <div class="vt-how-step">
+          <span class="vt-how-num">3</span>
+          <span>The detected watermark area is blurred out using FFmpeg's delogo filter</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- File picker -->
+    <div class="vt-file-zone" id="vtDropZone">
+      <input type="file" id="vtFileInput" accept=".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska">
+      <div class="drop-icon">🎥</div>
+      <div class="drop-text"><strong>Click or drag</strong> a video here<br><span style="font-size:.72rem;opacity:.6">MP4, MOV, AVI, MKV</span></div>
+      <div class="vt-file-name" id="vtFileName"></div>
+    </div>
+
+    <!-- Submit -->
+    <button class="vt-submit" id="vtSubmitBtn" onclick="submitWatermarkRemoval()">
+      <span class="vt-spinner" id="vtSpinner"></span>
+      <span id="vtBtnText">🧹 Detect & Remove Watermark</span>
+    </button>
+
+    <!-- Progress -->
+    <div class="vt-progress" id="vtProgress">
+      <div class="vt-progress-text" id="vtProgressText">Analyzing frames & detecting watermark…</div>
+      <div class="vt-progress-bar"><div class="vt-progress-fill"></div></div>
+    </div>
+
+    <!-- Result -->
+    <div class="vt-result" id="vtResult"></div>
+
+    <!-- Notes -->
+    <div class="vt-note">
+      <strong>Best results with:</strong> Videos where the content moves but the watermark stays fixed (logos, channel names, etc.). Very short clips (&lt;3s) or completely static videos may not produce reliable results.
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>Built with <strong>Go</strong> + <strong>FFmpeg</strong></span>
+  <span class="footer-dot">·</span>
+  <span>Auto-detection via <strong>frame variance analysis</strong></span>
+</footer>
+
+<div class="vt-toast" id="vtToast" role="alert" aria-live="assertive"></div>
+
+<script>
+/* ── Video Watermark Removal — Isolated JS ──────────────── */
+
+/* File input handling */
+const vtFileInput = document.getElementById('vtFileInput');
+const vtFileName  = document.getElementById('vtFileName');
+const vtDropZone  = document.getElementById('vtDropZone');
+
+vtFileInput.addEventListener('change', () => {
+  if (vtFileInput.files.length > 0) {
+    const f = vtFileInput.files[0];
+    const mb = (f.size / (1024 * 1024)).toFixed(1);
+    vtFileName.textContent = `${f.name}  (${mb} MB)`;
+    vtDropZone.style.borderColor = '#48cae4';
+  }
+});
+
+/* Drag and drop */
+vtDropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  vtDropZone.style.borderColor = '#48cae4';
+  vtDropZone.style.background = 'rgba(72,202,228,.04)';
+});
+vtDropZone.addEventListener('dragleave', () => {
+  vtDropZone.style.borderColor = '';
+  vtDropZone.style.background = '';
+});
+vtDropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  vtDropZone.style.borderColor = '#48cae4';
+  vtDropZone.style.background = '';
+  if (e.dataTransfer.files.length > 0) {
+    vtFileInput.files = e.dataTransfer.files;
+    const f = e.dataTransfer.files[0];
+    const mb = (f.size / (1024 * 1024)).toFixed(1);
+    vtFileName.textContent = `${f.name}  (${mb} MB)`;
+  }
+});
+
+/* Toast */
+function vtToast(msg) {
+  const el = document.getElementById('vtToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+/* Loading state */
+function vtSetLoading(on) {
+  const spinner  = document.getElementById('vtSpinner');
+  const btn      = document.getElementById('vtSubmitBtn');
+  const text     = document.getElementById('vtBtnText');
+  const progress = document.getElementById('vtProgress');
+
+  spinner.classList.toggle('visible', on);
+  btn.disabled = on;
+  text.textContent = on ? 'Processing…' : '🧹 Detect & Remove Watermark';
+  progress.classList.toggle('show', on);
+
+  if (on) {
+    // Cycle through progress messages
+    const messages = [
+      'Uploading video…',
+      'Extracting sample frames…',
+      'Analyzing pixel variance across frames…',
+      'Detecting static watermark regions…',
+      'Applying delogo filter…',
+      'Encoding clean video…',
+    ];
+    let idx = 0;
+    window._vtProgressTimer = setInterval(() => {
+      idx = Math.min(idx + 1, messages.length - 1);
+      document.getElementById('vtProgressText').textContent = messages[idx];
+    }, 3000);
+  } else {
+    clearInterval(window._vtProgressTimer);
+  }
+}
+
+/* Submit handler */
+async function submitWatermarkRemoval() {
+  const file = vtFileInput.files[0];
+  if (!file) { vtToast('Please select a video file first'); return; }
+
+  const fd = new FormData();
+  fd.append('video', file);
+
+  vtSetLoading(true);
+  const resultBox = document.getElementById('vtResult');
+  resultBox.classList.remove('show');
+
+  try {
+    const res = await fetch('/api/video/remove-watermark', {
+      method: 'POST',
+      body: fd,
+    });
+
+    if (!res.ok) {
+      let errMsg = 'Server error';
+      try {
+        const data = await res.json();
+        errMsg = data.error || errMsg;
+      } catch (_) {}
+      resultBox.innerHTML = `<div class="vt-result-inner err">
+        <div class="vt-result-msg">✗ ${escapeHtml(errMsg)}</div>
+      </div>`;
+      resultBox.classList.add('show');
+      vtToast('Watermark removal failed — see details below');
+    } else {
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^";\n]+)"?/);
+      const filename = match ? match[1] : 'cleaned_video.mp4';
+      const url = URL.createObjectURL(blob);
+
+      const mb = (blob.size / (1024 * 1024)).toFixed(1);
+
+      resultBox.innerHTML = `<div class="vt-result-inner ok">
+        <div class="vt-result-msg">✓ Watermark detected and removed successfully</div>
+        <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);margin-bottom:10px">
+          Output: ${mb} MB
+        </div>
+        <a class="dl-btn" href="${url}" download="${escapeHtml(filename)}">↓ Download ${escapeHtml(filename)}</a>
+      </div>`;
+      resultBox.classList.add('show');
+    }
+  } catch (err) {
+    resultBox.innerHTML = `<div class="vt-result-inner err">
+      <div class="vt-result-msg">✗ Network error: ${escapeHtml(err.message)}</div>
+    </div>`;
+    resultBox.classList.add('show');
+    vtToast('Could not reach the server');
+  }
+
+  vtSetLoading(false);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Theme persistence (reuse from main page) ──────────── */
+(function() {
+  const root = document.documentElement;
+  const saved = localStorage.getItem('ilpdf-theme') || 'dark';
+  const savedColor = localStorage.getItem('ilpdf-accent') || '#ff4d6d';
+  if (saved === 'light') root.setAttribute('data-theme', 'light');
+  root.style.setProperty('--accent', savedColor);
+})();
+</script>
+</body>
+</html>

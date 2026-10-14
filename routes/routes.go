@@ -10,6 +10,7 @@ import (
 func SetUpRoutes(r *gin.Engine) {
 
 	r.GET("/", controllers.Home)
+	r.GET("/video/remove-watermark", controllers.VideoToolPage)
 
 	api := r.Group("/api")
 	api.Use(middleware.OptionalAuth())
@@ -62,6 +63,9 @@ func SetUpRoutes(r *gin.Engine) {
 		// ── Auth — OAuth ─────────────────────────────────────
 		api.POST("/auth/google", controllers.GoogleAuth)
 		api.POST("/auth/apple", controllers.AppleAuth)
+
+		// ── Video ────────────────────────────────────────────
+		api.POST("/video/remove-watermark", controllers.RemoveVideoWatermark)
 	}
 
 	// Protected routes (require authentication)
